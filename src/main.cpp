@@ -27,7 +27,7 @@ time_t now;
 struct tm tm;
 
 volatile bool halfSecondFlag = false;
-volatile bool newClockDraw = false;
+volatile bool newClockDrawFlag = false;
 
 void ledInit();
 void printClock();
@@ -39,7 +39,7 @@ void waitingForNtpSync();
 void IRAM_ATTR onTimer()
 {
   halfSecondFlag = !halfSecondFlag;
-  newClockDraw = true;
+  newClockDrawFlag = true;
 }
 
 void ledInit()
@@ -250,9 +250,9 @@ void setup()
 
 void loop()
 {
-  if (newClockDraw)
+  if (newClockDrawFlag)
   {
-    newClockDraw = false;
+    newClockDrawFlag = false;
     time(&now);
     localtime_r(&now, &tm);
     printClock();
