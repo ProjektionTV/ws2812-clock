@@ -10,3 +10,9 @@
 2. open a browser with and put this in the url `192.168.4.1`
 3. configure
 4. have fun!
+
+# reopen settings
+
+1. start pressing `BOOT` button in start animation
+2. stop pressing button when `config` is apearing
+3. you can now folow the steps from **setup** again

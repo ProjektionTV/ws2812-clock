@@ -209,6 +209,14 @@ void addDefaultEffects() {
     })];
 }
 
+void fastLEDdraw() {
+    for(uint8_t i = 0; i < NUM_LEDS; i++) {
+        color c = rd_c[i];
+        leds[i] = CRGB(c.r, c.g, c.b);
+    }
+    FastLED.show();
+}
+
 void drawClock() {
     if(isTransitiing) {
         currEffect._ringEffect->drawRing(rd_t0, 0, SEGMENTOFFSET, &currEffect);
@@ -225,11 +233,7 @@ void drawClock() {
         currEffect._ringEffect->drawRing(rd_c, 0, SEGMENTOFFSET, &currEffect);
         currEffect._middEffect->drawMidd(rd_c, SEGMENTOFFSET, NUM_LEDS - SEGMENTOFFSET, &currEffect);
     }
-    for(uint8_t i = 0; i < NUM_LEDS; i++) {
-        color c = rd_c[i];
-        leds[i] = CRGB(c.r, c.g, c.b);
-    }
-    FastLED.show();
+    fastLEDdraw();
 }
 
 void getNtpSync() {
@@ -240,6 +244,27 @@ void getNtpSync() {
     lastMSNtpSync = millis();
     Serial.print("msdiffsec: ");
     Serial.println(msdiffsec);
+}
+
+void handleBootButton() {
+    bool a = false;
+    if(!digitalRead(0)) a = true;
+    delay(50);
+    if(!digitalRead(0)) a = true;
+    if(!a) return;
+    int o = 60;
+    color on = {.r=255,.g=255,.b=255,};
+    color off = {.r=0,.g=0,.b=0,};
+    o += printChar(rd_c, 'c', o, on, off);
+    o += printChar(rd_c, 'o', o, on, off);
+    o += printChar(rd_c, 'n', o, on, off);
+    o += printChar(rd_c, 'f', o, on, off);
+    o += printChar(rd_c, 'i', o, on, off);
+    o += printChar(rd_c, 'g', o, on, off);
+    fastLEDdraw();
+    while(digitalRead(0));
+    wifiManager.startConfigPortal(WIFI_AP_NAME, WIFI_AP_PASSWORD);
+    ESP.restart();
 }
 
 void setup() {
@@ -253,6 +278,10 @@ void setup() {
     WiFi.mode(WIFI_STA);
     wifiManager.setDebugOutput(false);
     wifiManager.setShowStaticFields(true);
+
+    pinMode(0, INPUT);
+    handleBootButton();
+    // auto connect
     bool res;
     if(!(res = wifiManager.autoConnect(WIFI_AP_NAME, WIFI_AP_PASSWORD))) {
         Serial.println("Faild to connect to Wifi!");
