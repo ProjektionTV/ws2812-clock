@@ -16,3 +16,8 @@
 1. start pressing `BOOT` button in start animation
 2. stop pressing button when `config` is apearing
 3. you can now folow the steps from **setup** again
+
+# OTA
+
+1. go into `settings.hpp` set `ENABLE_OTA` to `1`
+2. go into `platformio.ini` and uncomment `upload_*` lines and paste in your clocks ip address

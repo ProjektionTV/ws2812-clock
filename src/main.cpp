@@ -4,6 +4,7 @@
 #include <WiFi.h>
 #include <FastLED.h>
 #include <WiFiManager.h>
+#include <ArduinoOTA.h>
 
 #include "types.hpp"
 #include "settings.hpp"
@@ -293,6 +294,14 @@ void setup() {
 
     addDefaultEffects();
 
+    // OTA
+#if ENABLE_OTA
+    ArduinoOTA.setHostname(OTA_HOST);
+    if (OTA_PORT != 0)
+        ArduinoOTA.setPort(OTA_PORT);
+    ArduinoOTA.begin();
+#endif
+
     // ntp
     configTzTime(MY_TZ, MY_NTP_SERVER);
     getNtpSync();
@@ -303,6 +312,10 @@ void loop() {
     drawColon = ((millis() - msdiffsec) % 1000) < 500;
     drawClockFlag = true;
     getLocalTime(&tm, 100);
+
+#if ENABLE_OTA
+    ArduinoOTA.handle();
+#endif
 
     if(drawClockFlag){
         drawClockFlag = false;

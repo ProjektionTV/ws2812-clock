@@ -14,6 +14,10 @@
 #define WIFI_AP_NAME "ws2812-clock"
 #define WIFI_AP_PASSWORD "pR0j3K+10n+v"
 
+#define OTA_HOST "ws2812clock"
+#define OTA_PORT 0 // if 0 ignored
+#define ENABLE_OTA 0 // 0: disabled 1: enabled
+
 #define LED_BRIGHTNESS 42
 
 #endif /* _SETTINGS_HPP_ */
