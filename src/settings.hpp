@@ -12,7 +12,7 @@
 #define MY_TZ "CET-1CEST,M3.5.0/02,M10.5.0/03"
 
 #define WIFI_AP_NAME "ws2812-clock"
-#define WIFI_AP_PASSWORD "pR0j3K+10nTv"
+#define WIFI_AP_PASSWORD "pR0j3K+10n+v"
 
 #define LED_BRIGHTNESS 42
 
