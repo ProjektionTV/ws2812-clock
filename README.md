@@ -3,8 +3,6 @@
 ## fetures
 
 * Display Time `HH:mm:ss` (24h format)
-* Display Date `dd.MM.YY` (example `27.01.22`)
-* Display Coustom massages
 
 ## setup
 
