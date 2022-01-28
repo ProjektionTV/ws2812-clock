@@ -17,7 +17,7 @@ extern ringEffect ringEffects[NUM_RING_EFFECTS];
 extern middEffect middEffects[NUM_MIDD_EFFECTS];
 typedef color color_function(uint8_t pos);
 extern color_function *colorEffects[NUM_COLO_EFFECTS];
-typedef bool transition_function(color* render_data, color* effect_a, color* effect_b, long ms_since_start);
+typedef bool transition_function(color* render_data, color* effect_a, color* effect_b, long ms_since_start, uint8_t pos, uint8_t lng);
 extern transition_function *transitions[NUM_TRAN_EFFECTS];
 
 

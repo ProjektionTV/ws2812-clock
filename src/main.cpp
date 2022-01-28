@@ -203,6 +203,10 @@ void addDefaultEffects() {
             return {.r=0, .g=0, .b=0};
         }
     })];
+    currTransition.transition = transitions[addFunction([](color* render_data, color* effect_a, color* effect_b, long ms_since_start, uint8_t pos, uint8_t lng) -> bool {
+        for(uint8_t i = 0, j = pos; i < lng; i++, j++) render_data[j] = effect_b[j];
+        return true;
+    })];
 }
 
 void drawClock() {
@@ -211,7 +215,7 @@ void drawClock() {
         currEffect._middEffect->drawMidd(rd_t0, SEGMENTOFFSET, NUM_LEDS - SEGMENTOFFSET, &currEffect);
         currTransitionTarget._ringEffect->drawRing(rd_t1, 0, SEGMENTOFFSET, &currEffect);
         currTransitionTarget._middEffect->drawMidd(rd_t1, SEGMENTOFFSET, NUM_LEDS - SEGMENTOFFSET, &currEffect);
-        if(currTransition.transition(rd_c, rd_t0, rd_t1, millis() - transitionStart)) {
+        if(currTransition.transition(rd_c, rd_t0, rd_t1, millis() - transitionStart, 0, NUM_LEDS)) {
             isTransitiing = false;
             currEffect.getColor = currTransitionTarget.getColor;
             currEffect._middEffect = currTransitionTarget._middEffect;

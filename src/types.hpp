@@ -25,7 +25,7 @@ struct effect {
 };
 
 struct transition {
-    bool (*transition)(color* render_data, color* effect_a, color* effect_b, long ms_since_start); // rtn: is done
+    bool (*transition)(color* render_data, color* effect_a, color* effect_b, long ms_since_start, uint8_t pos, uint8_t lng); // rtn: is done
 };
 
 #endif /* _TYPES_HPP_ */
