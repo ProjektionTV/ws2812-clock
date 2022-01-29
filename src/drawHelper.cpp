@@ -98,3 +98,36 @@ color fadeToBlack(color c, uint16_t numerator, uint16_t denominator) {
         .b=(uint8_t) min(255, ((uint16_t) c.b * numerator) / denominator),
     };
 }
+
+void doCharPrint(uint8_t &textI, const uint8_t textMaxLenght, const char* text, color* rd, uint8_t &ci, const color on, const color off) {
+    if(textI < textMaxLenght && text[textI] != '\0') ci += printChar(rd, text[textI++], ci, on, off);
+}
+
+void checkColon(uint8_t &textI, const uint8_t textMaxLenght, const char* text, color* rd, uint8_t &ci, const color on, const color off, bool &doColon) {
+    if(textI < textMaxLenght && text[textI] != '\0') {
+        if(text[textI] == ':') {
+            doColon = true;
+            textI++;
+        } else ci += printChar(rd, text[textI++], ci, on, off);
+    }
+}
+
+uint8_t drawCoustomText(color* renderdata, const char* text, uint8_t textMaxLenght, uint8_t pos, uint8_t length, color on, color off) {
+    color rd[14*7];
+    uint8_t textI = 0;
+    uint8_t ci = 0;
+    bool col0 = false;
+    bool col1 = false;
+    if(ci == 14 * 0) doCharPrint(textI, textMaxLenght, text, rd, ci, on, off);
+    if(ci == 14 * 1) doCharPrint(textI, textMaxLenght, text, rd, ci, on, off);
+    if(ci == 14 * 2) checkColon(textI, textMaxLenght, text, rd, ci, on, off, col0);
+    if(ci == 14 * 2) doCharPrint(textI, textMaxLenght, text, rd, ci, on, off);
+    if(ci == 14 * 3) doCharPrint(textI, textMaxLenght, text, rd, ci, on, off);
+    if(ci == 14 * 4) checkColon(textI, textMaxLenght, text, rd, ci, on, off, col1);
+    if(ci == 14 * 4) doCharPrint(textI, textMaxLenght, text, rd, ci, on, off);
+    if(ci == 14 * 5) doCharPrint(textI, textMaxLenght, text, rd, ci, on, off);
+    if(col0) fill(rd, 14*6 + 0, 2, on); else fill(rd, 14*6 + 0, 2, off);
+    if(col1) fill(rd, 14*6 + 2, 2, on); else fill(rd, 14*6 + 2, 2, off);
+    for(uint8_t i = 0, j = pos; i < min(length, (uint8_t) (14*7)); i++, j++) renderdata[j] = rd[i];
+    return ci;
+}

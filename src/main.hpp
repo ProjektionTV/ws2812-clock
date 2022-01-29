@@ -25,8 +25,10 @@ extern WiFiManager wifiManager;
 
 
 extern char customMessage[MAX_CUSTOM_MESSAGE_LENGHT];
+extern unsigned long customMessageSet;
 
 extern struct tm tm;
+extern bool drawColon;
 
 /*
     adds ringEffect `eff` to ring effect list

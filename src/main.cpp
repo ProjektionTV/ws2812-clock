@@ -11,6 +11,8 @@
 #include "drawHelper.hpp"
 #include "mqtt.hpp"
 
+#include "effects/default.hpp"
+
 #define LED_PIN 5
 #define COLOR_ORDER GRB
 #define CHIPSET WS2812B
@@ -27,8 +29,6 @@ long lastMSNtpSync = 0;
 
 bool drawClockFlag = true;
 bool drawColon = false;
-uint8_t digDrawn = 0;
-uint8_t digS = 0;
 
 CRGB leds[NUM_LEDS];
 
@@ -36,7 +36,9 @@ ringEffect ringEffects[NUM_RING_EFFECTS];
 middEffect middEffects[NUM_MIDD_EFFECTS];
 color_function *colorEffects[NUM_COLO_EFFECTS];
 transition_function *transitions[NUM_TRAN_EFFECTS];
+
 char customMessage[MAX_CUSTOM_MESSAGE_LENGHT];
+unsigned long customMessageSet = 0;
 
 uint8_t ringEffectsAMT = 0;
 uint8_t middEffectsAMT = 0;
@@ -129,86 +131,10 @@ void initTransition(uint8_t transitionID, uint8_t ringEffectId, uint8_t middEffe
 }
 
 void addDefaultEffects() {
-    currEffect._ringEffect = ringEffects + addEffect({
-        .drawRing = [](color* render_data, uint8_t pos, uint8_t len, effect* effect) -> void {
-            color frd[60];
-            color colA = effect->getColor(0);
-            color colB = effect->getColor(1);
-            uint8_t sec = tm.tm_sec;
-            uint8_t _60dSec = 60 - sec;
-            uint8_t expos = digDrawn + digS;
-            if(digDrawn < 60) {
-                uint8_t ndraw = sec < digS ? sec - digS + 60 : sec - digS;
-                digDrawn = ndraw < digDrawn ? 60 : ndraw;
-            }
-            if(digDrawn >= 60)
-                for(uint8_t i = 0; i < 60; i++)
-                    frd[i] = fadeToBlack(((i + 1) % 5) ? colA : colB, (i < sec ? _60dSec + i : i - sec) + 20, 80);
-            else
-                for(uint8_t i = 0; i < 60; i++)
-                    frd[i] = fadeToBlack(((i + 1) % 5) ? colA : colB, ((i < digS ? i + 60 : i) >= expos) ? 0 : ((i < sec ? _60dSec + i : i - sec) + 20), 80);
-            for(uint8_t i = 0, j = pos; i < len; i++, j++) render_data[j] = frd[i];
-        }
-    });
-    currEffect._middEffect = middEffects + addEffect({
-        .drawMidd = [](color* render_data, uint8_t pos, uint8_t len, effect* effect) -> void {
-            uint8_t seconds = 0;
-            uint8_t minutes = 0;
-            uint8_t hours = 0;
-
-            seconds = tm.tm_sec;
-            minutes = tm.tm_min;
-            hours = tm.tm_hour;
-
-            uint8_t second0 = seconds % 10 + '0';
-            uint8_t second1 = seconds / 10 + '0';
-
-            uint8_t minute0 = minutes % 10 + '0';
-            uint8_t minute1 = minutes / 10 + '0';
-
-            uint8_t hour0 = hours % 10 + '0';
-            uint8_t hour1 = hours / 10 + '0';
-
-            uint8_t index = 0;
-            color frd[14*6+4];
-            index += printChar(frd, hour1, index, effect->getColor(4), effect->getColor(5));
-            index += printChar(frd, hour0, index, effect->getColor(4), effect->getColor(5));
-            index += printChar(frd, minute1, index, effect->getColor(4), effect->getColor(5));
-            index += printChar(frd, minute0, index, effect->getColor(4), effect->getColor(5));
-            index += printChar(frd, second1, index, effect->getColor(4), effect->getColor(5));
-            index += printChar(frd, second0, index, effect->getColor(4), effect->getColor(5));
-            fill(frd, index, 4, effect->getColor(6 + (drawColon ? 0 : 1)));
-            for(uint8_t i = 0, j = pos; i < len; i++, j++) render_data[j] = frd[i];
-        }
-    });
-    currEffect.getColor = colorEffects[addFunction([](uint8_t pos) -> color {
-        switch (pos) {
-        case 0:
-            return {.r=0, .g=255, .b=0};
-        case 1:
-            return {.r=255, .g=0, .b=0};
-        case 2:
-            return {.r=0, .g=0, .b=0};
-        case 3:
-            return {.r=0, .g=0, .b=0};
-
-        case 4:
-            return {.r=0, .g=0, .b=255};
-        case 5:
-            return {.r=0, .g=0, .b=0};
-        case 6:
-            return {.r=255, .g=255, .b=0};
-        case 7:
-            return {.r=0, .g=0, .b=0};
-        
-        default:
-            return {.r=0, .g=0, .b=0};
-        }
-    })];
-    currTransition.transition = transitions[addFunction([](color* render_data, color* effect_a, color* effect_b, long ms_since_start, uint8_t pos, uint8_t lng) -> bool {
-        for(uint8_t i = 0, j = pos; i < lng; i++, j++) render_data[j] = effect_b[j];
-        return true;
-    })];
+    currEffect._ringEffect = ringEffects + Effects::Default::addRing();
+    currEffect._middEffect = middEffects + Effects::Default::addMidd();
+    currEffect.getColor = colorEffects[Effects::Default::addColor()];
+    currTransition.transition = transitions[Effects::Default::addTransition()];
 }
 
 void fastLEDdraw() {
@@ -257,12 +183,7 @@ void handleBootButton() {
     int o = 60;
     color on = {.r=255,.g=255,.b=255,};
     color off = {.r=0,.g=0,.b=0,};
-    o += printChar(rd_c, 'c', o, on, off);
-    o += printChar(rd_c, 'o', o, on, off);
-    o += printChar(rd_c, 'n', o, on, off);
-    o += printChar(rd_c, 'f', o, on, off);
-    o += printChar(rd_c, 'i', o, on, off);
-    o += printChar(rd_c, 'g', o, on, off);
+    drawCoustomText(rd_c, "config", 6, o, 14*6 +4, on, off);
     fastLEDdraw();
     while(digitalRead(0));
     wifiManager.startConfigPortal(WIFI_AP_NAME, WIFI_AP_PASSWORD);
@@ -315,7 +236,7 @@ void setup() {
     // ntp
     configTzTime(MY_TZ, MY_NTP_SERVER);
     getNtpSync();
-    digS = tm.tm_sec;
+    Effects::Default::init();
 }
 
 void loop() {

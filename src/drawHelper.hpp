@@ -25,4 +25,10 @@ uint8_t printChar(color* render_data, const char var, uint8_t position, color on
 */
 color fadeToBlack(color c, uint16_t numerator, uint16_t denominator);
 
+/*
+    draws text to rd
+    returns amount of space used Internaly
+*/
+uint8_t drawCoustomText(color* renderdata, const char* text, uint8_t textMaxLenght, uint8_t pos, uint8_t length, color on, color off);
+
 #endif /* _DRAWHELPER_HPP_ */
