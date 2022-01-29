@@ -2,6 +2,7 @@
 #define _MAIN_HPP_
 
 #include <Arduino.h>
+#include <WiFiManager.h>
 
 #include "types.hpp"
 #include "settings.hpp"
@@ -19,6 +20,8 @@ typedef color color_function(uint8_t pos);
 extern color_function *colorEffects[NUM_COLO_EFFECTS];
 typedef bool transition_function(color* render_data, color* effect_a, color* effect_b, long ms_since_start, uint8_t pos, uint8_t lng);
 extern transition_function *transitions[NUM_TRAN_EFFECTS];
+
+extern WiFiManager wifiManager;
 
 
 extern char customMessage[MAX_CUSTOM_MESSAGE_LENGHT];

@@ -9,6 +9,7 @@
 #include "types.hpp"
 #include "settings.hpp"
 #include "drawHelper.hpp"
+#include "mqtt.hpp"
 
 #define LED_PIN 5
 #define COLOR_ORDER GRB
@@ -278,7 +279,12 @@ void setup() {
     // wifi
     WiFi.mode(WIFI_STA);
     wifiManager.setDebugOutput(false);
-    wifiManager.setShowStaticFields(true);
+    initMqtt();
+    wifiManager.setSaveParamsCallback([]() -> void {
+        saveMqtt();
+    });
+    std::vector<const char *> menu = {"wifi","info","param","sep","restart","exit"};
+    wifiManager.setMenu(menu);
 
     pinMode(0, INPUT);
     handleBootButton();
@@ -290,9 +296,13 @@ void setup() {
         ESP.restart();
     }
     Serial.println("WiFi connected...");
+    Serial.print("Current IP: ");
+    Serial.println(WiFi.localIP().toString());
     // wifi connected
 
     addDefaultEffects();
+
+    startMqtt();
 
     // OTA
 #if ENABLE_OTA
@@ -312,6 +322,8 @@ void loop() {
     drawColon = ((millis() - msdiffsec) % 1000) < 500;
     drawClockFlag = true;
     getLocalTime(&tm, 100);
+
+    loopMqtt();
 
 #if ENABLE_OTA
     ArduinoOTA.handle();
