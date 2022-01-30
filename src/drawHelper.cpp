@@ -10,6 +10,20 @@ uint8_t printChar(color* render_data, const char var, uint8_t position, color on
     if(var >= 'a' && var <= 'z') idx = var - 'a' + 12;
     if(var >= 'A' && var <= 'Z') idx = var - 'A' + 12;
     if(var >= '0' && var <= '9') idx = var - '0' + 2;
+    if(var == ':') idx = 38;
+    if(var == '-') idx = 39;
+    if(var == '_') idx = 40;
+    if(var == '^') idx = 41;
+    if(var == '!') idx = 42;
+    if(var == '.') idx = 43;
+    if(var == '?') idx = 44;
+    if(var == '%') idx = 45;
+    if(var == '"') idx = 46;
+    if(var == '\'') idx = 47;
+    if(var == ',') idx = 48;
+    if(var == ';') idx = 49;
+    if(var == '~') idx = 50;
+    if(var == '=') idx = 51;
     uint16_t chars[] = {
         /*
             0b0'xxxxxxx'gfedcba'0:
@@ -57,26 +71,40 @@ uint8_t printChar(color* render_data, const char var, uint8_t position, color on
         0b0000000010111100, // d
         0b0000000011110010, // e
         0b0000000011100010, // f
-        0b0101111111100111, // g
+        0b0000000001111010, // g
         0b0000000011101000, // h
-        0b0000000001101001, // i
+        0b0000000001100000, // i
         0b0000000000011100, // j
-        0b0000000000000000, // k // TODO
+        0b0111111001110001, // k
         0b0000000001110000, // l
-        0b0000000000000000, // m // TODO // 2
+        0b0000000000101010, // m
         0b0000000010101000, // n
         0b0000000010111000, // o
         0b0000000011100110, // p
         0b0000000011001110, // q
-        0b0000000000000000, // r // TODO
-        0b0000000000000000, // s // TODO // 3
+        0b0111111000111111, // r
+        0b0111101111101111, // s
         0b0000000011110000, // t
         0b0000000001111100, // u
         0b0000000000111000, // v
-        0b0000000000000000, // w // TODO // 2
-        0b0000000000000000, // x // TODO
+        0b0000000001010100, // w
+        0b0110110000110001, // x
         0b0000000011011100, // y
-        0b0000000000000000, // z // TODO // 3
+        0b0111011111011111, // z
+        0b0000000000110001, // :
+        0b0000000010000000, // -
+        0b0000000000010000, // _
+        0b0000000001000110, // ^
+        0b0000000001011001, // !
+        0b0000000001000001, // .
+        0b0111011010011111, // ?
+        0b0111011001011001, // %
+        0b0000000001000100, // "
+        0b0000000001000000, // '
+        0b0000000000100000, // ,
+        0b0001011000000001, // ;
+        0b0110010000010001, // ~
+        0b0000000010000010, // =
     };
     uint16_t chr = chars[idx];
     if(chr & 1) { // 14 seg
@@ -114,6 +142,7 @@ void checkColon(uint8_t &textI, const uint8_t textMaxLenght, const char* text, c
 
 uint8_t drawCoustomText(color* renderdata, const char* text, uint8_t textMaxLenght, uint8_t pos, uint8_t length, color on, color off) {
     color rd[14*7];
+    for(uint8_t j = 0; j < 14*7; j++) rd[j] = off;
     uint8_t textI = 0;
     uint8_t ci = 0;
     bool col0 = false;

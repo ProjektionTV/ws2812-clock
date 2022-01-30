@@ -55,13 +55,52 @@ void connectMqtt() {
     }
 }
 
+unsigned int readNum(unsigned int &i, uint8_t *data, unsigned int length) {
+    unsigned int t = 0;
+    while(length > i && data[i] >= '0' && data[i] <= '9') {
+        t *= 10;
+        t += data[i] - '0';
+        i++;
+    }
+    return t;
+}
+
 void mqttCallback(char * topic, uint8_t *payload, unsigned int length) {
     Serial.print("[MQTT] [");
     Serial.print(topic);
     Serial.print("] ");
     Serial.write(payload, length);
     Serial.println();
-    // TODO: Handle Mqtt event
+    unsigned int i = 0;
+    uint8_t t_t = 0, t_r = 255, t_m = 255, t_c = 255;
+    unsigned int textl = 0;
+    while(i < length) {
+        switch (payload[i++]) {
+            case 'm': // custom message
+                textl = readNum(i, payload, length);
+                if(i < length && payload[i] == ' ') i++;
+                for(uint8_t j = 0; j < min(textl, 8U); j++) customMessage[j] = (i < length) ? payload[i++] : '\0';
+                for(uint8_t j = min(textl, 8U); j < 8; j++) customMessage[j] = '\0';
+                if(textl > 8) i += textl - 8;
+                customMessageSet = millis();
+                break;
+            case 't': // transition transition id
+                t_t = readNum(i, payload, length);
+                break;
+            case 'r': // transition ring id
+                t_r = readNum(i, payload, length);
+                break;
+            case 'c': // transition color id
+                t_c = readNum(i, payload, length);
+                break;
+            case 'i': // transition midd id
+                t_m = readNum(i, payload, length);
+                break;
+            case 'e': // execute transition
+                initTransition(t_t, t_r, t_m, t_c);
+                break;
+        }
+    }
 }
 
 void initMqtt() {

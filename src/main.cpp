@@ -119,13 +119,14 @@ uint8_t addFunction(transition_function* trans) {
 }
 
 void initTransition(uint8_t transitionID, uint8_t ringEffectId, uint8_t middEffectId, uint8_t colorEffectId) {
-    if(!~ringEffectId) currTransitionTarget._ringEffect = currEffect._ringEffect;
+    if(ringEffectId == 255 || ringEffectId >= ringEffectsAMT) currTransitionTarget._ringEffect = currEffect._ringEffect;
         else currTransitionTarget._ringEffect = ringEffects + ringEffectId;
-    if(!~middEffectId) currTransitionTarget._middEffect = currEffect._middEffect;
+    if(middEffectId == 255 || middEffectId >= middEffectsAMT) currTransitionTarget._middEffect = currEffect._middEffect;
         else currTransitionTarget._middEffect = middEffects + middEffectId;
-    if(!~colorEffectId) currTransitionTarget.getColor = currEffect.getColor;
+    if(colorEffectId == 255 || colorEffectId >= colorEffectsAMT) currTransitionTarget.getColor = currEffect.getColor;
         else currTransitionTarget.getColor = colorEffects[colorEffectId];
-    currTransition.transition = transitions[transitionID];
+    if(transitionID < transitionsAMT) currTransition.transition = transitions[transitionID];
+        else currTransition.transition = transitions[0];
     transitionStart = millis();
     isTransitiing = true;
 }
