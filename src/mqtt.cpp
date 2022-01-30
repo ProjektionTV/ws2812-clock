@@ -84,6 +84,12 @@ void mqttCallback(char * topic, uint8_t *payload, unsigned int length) {
                 if(textl > 8) i += textl - 8;
                 customMessageSet = millis();
                 break;
+            case 'd': // custom message duration
+                customMessageDuration = readNum(i, payload, length);
+                break;
+            case 'b': // led brightness
+                setLedBrightness(readNum(i, payload, length));
+                break;
             case 't': // transition transition id
                 t_t = readNum(i, payload, length);
                 break;

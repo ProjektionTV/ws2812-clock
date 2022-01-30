@@ -37,10 +37,21 @@
 
 `<command>[command]...`
 
+#### b
+sets led brightness until clock retstart (default: 42)
+
+`b<0-255>`
+
 #### m
 set custom text
 
 `m<text lenght> <text>`
+
+#### d
+set custom text duration in ms (default: 1000)
+value will only be reset aufter restart of clock
+
+`d<ms>`
 
 #### t
 set transition id
@@ -66,3 +77,24 @@ set inner effect for transition
 start transition
 
 `e`
+
+## available effects
+
+### ring
+
+* 0: default
+* 1: rainbow
+
+### center / inner
+
+* 0: default
+
+### color
+
+* 0: default
+* 1: rainbow
+
+### transition
+
+* 0: direct cut
+* 1: moving border (2sec) (I don't know how to diescribe the transition)

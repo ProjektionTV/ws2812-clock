@@ -26,6 +26,7 @@ extern WiFiManager wifiManager;
 
 extern char customMessage[MAX_CUSTOM_MESSAGE_LENGHT];
 extern unsigned long customMessageSet;
+extern unsigned long customMessageDuration;
 
 extern struct tm tm;
 extern bool drawColon;
@@ -56,5 +57,7 @@ uint8_t addFunction(transition_function* trans);
     if a effect is 255 the current effect will be cept
 */
 void initTransition(uint8_t transitionID, uint8_t ringEffectId = 255, uint8_t middEffectId = 255, uint8_t colorEffectId = 255);
+
+void setLedBrightness(uint8_t brightness);
 
 #endif /* _MAIN_HPP_ */

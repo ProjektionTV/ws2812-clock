@@ -12,6 +12,7 @@
 #include "mqtt.hpp"
 
 #include "effects/default.hpp"
+#include "effects/hype.hpp"
 
 #define LED_PIN 5
 #define COLOR_ORDER GRB
@@ -39,6 +40,9 @@ transition_function *transitions[NUM_TRAN_EFFECTS];
 
 char customMessage[MAX_CUSTOM_MESSAGE_LENGHT];
 unsigned long customMessageSet = 0;
+unsigned long customMessageDuration = 1000;
+
+uint8_t lastLoopSec;
 
 uint8_t ringEffectsAMT = 0;
 uint8_t middEffectsAMT = 0;
@@ -101,6 +105,10 @@ void ledInit() {
     }
 }
 
+void setLedBrightness(uint8_t brightness){
+    FastLED.setBrightness(brightness);
+}
+
 uint8_t addEffect(ringEffect eff) {
     ringEffects[ringEffectsAMT++] = eff;
     return ringEffectsAMT - 1;
@@ -136,6 +144,9 @@ void addDefaultEffects() {
     currEffect._middEffect = middEffects + Effects::Default::addMidd();
     currEffect.getColor = colorEffects[Effects::Default::addColor()];
     currTransition.transition = transitions[Effects::Default::addTransition()];
+    Effects::Hype::addColor();
+    Effects::Hype::addRing();
+    Effects::Hype::addTransition();
 }
 
 void fastLEDdraw() {
@@ -150,8 +161,8 @@ void drawClock() {
     if(isTransitiing) {
         currEffect._ringEffect->drawRing(rd_t0, 0, SEGMENTOFFSET, &currEffect);
         currEffect._middEffect->drawMidd(rd_t0, SEGMENTOFFSET, NUM_LEDS - SEGMENTOFFSET, &currEffect);
-        currTransitionTarget._ringEffect->drawRing(rd_t1, 0, SEGMENTOFFSET, &currEffect);
-        currTransitionTarget._middEffect->drawMidd(rd_t1, SEGMENTOFFSET, NUM_LEDS - SEGMENTOFFSET, &currEffect);
+        currTransitionTarget._ringEffect->drawRing(rd_t1, 0, SEGMENTOFFSET, &currTransitionTarget);
+        currTransitionTarget._middEffect->drawMidd(rd_t1, SEGMENTOFFSET, NUM_LEDS - SEGMENTOFFSET, &currTransitionTarget);
         if(currTransition.transition(rd_c, rd_t0, rd_t1, millis() - transitionStart, 0, NUM_LEDS)) {
             isTransitiing = false;
             currEffect.getColor = currTransitionTarget.getColor;
@@ -170,6 +181,7 @@ void getNtpSync() {
     uint8_t sec = tm.tm_sec;
     while (sec == tm.tm_sec) getLocalTime(&tm, 100);
     msdiffsec = millis() % 1000;
+    lastLoopSec = tm.tm_sec;
     lastMSNtpSync = millis();
     Serial.print("msdiffsec: ");
     Serial.println(msdiffsec);
@@ -244,6 +256,8 @@ void loop() {
     drawColon = ((millis() - msdiffsec) % 1000) < 500;
     drawClockFlag = true;
     getLocalTime(&tm, 100);
+    if(tm.tm_sec != lastLoopSec) msdiffsec = millis() % 1000;
+    lastLoopSec = tm.tm_sec;
 
     loopMqtt();
 

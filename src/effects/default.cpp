@@ -30,8 +30,8 @@ uint8_t Effects::Default::addMidd() {
 
             uint8_t index = 0;
             color frd[14*6+4];
-            if(customMessageSet + 1000 > millis()){
-                drawCoustomText(frd, customMessage, 8, 0, 14*6+4, effect->getColor(4), effect->getColor(5));
+            if(customMessageSet + customMessageDuration > millis()){
+                drawCoustomText(frd, customMessage, 8, 0, 14*6+4, effect->getColor(7), effect->getColor(5));
             } else {
                 color colA = effect->getColor(4);
                 color colB = effect->getColor(5);
@@ -41,7 +41,7 @@ uint8_t Effects::Default::addMidd() {
                 index += printChar(frd, minute0, index, colA, colB);
                 index += printChar(frd, second1, index, colA, colB);
                 index += printChar(frd, second0, index, colA, colB);
-                fill(frd, index, 4, effect->getColor(6 + (drawColon ? 0 : 1)));
+                fill(frd, index, 4, effect->getColor(5 + (drawColon ? 1 : 0)));
             }
             for(uint8_t i = 0, j = pos; i < len; i++, j++) render_data[j] = frd[i];
         }
@@ -91,7 +91,7 @@ uint8_t Effects::Default::addColor() {
         case 6:
             return {.r=255, .g=255, .b=0};
         case 7:
-            return {.r=0, .g=0, .b=0};
+            return {.r=0, .g=0, .b=255};
         
         default:
             return {.r=0, .g=0, .b=0};
