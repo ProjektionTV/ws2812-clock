@@ -46,7 +46,7 @@ void connectMqtt() {
             psClient.subscribe(psCTopic.c_str());
         } else {
             tryC++;
-            if(tryC == 60) {
+            if(tryC == 6) {
                 useMqtt = false;
                 Serial.println("Couldn't connect to Mqtt! disabling Mqtt!");
                 break;
