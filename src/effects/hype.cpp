@@ -5,7 +5,7 @@
 
 uint8_t Effects::Hype::addRing() {
     return addEffect({
-        .drawRing = [](color* render_data, uint8_t pos, uint8_t len, effect* effect) -> void {
+        .drawRing = [](color* render_data, uint8_t pos, uint8_t lng, effect* effect) -> void {
             color frd[60];
             CHSV hsv;
             CRGB rgb;
@@ -18,7 +18,7 @@ uint8_t Effects::Hype::addRing() {
                 hsv2rgb_rainbow(hsv, rgb);
                 frd[i] = {.r=rgb.r, .g=rgb.g, .b=rgb.b};
             }
-            for(uint8_t i = 0, j = pos; i < len; i++, j++) render_data[j] = frd[i];
+            for(uint8_t i = 0, j = pos; i < lng; i++, j++) render_data[j] = frd[i];
         }
     });
 }

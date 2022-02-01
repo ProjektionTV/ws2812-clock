@@ -9,7 +9,7 @@
 
 extern effect currEffect;
 
-extern bool isTransitiing;
+extern bool isTransitioning;
 extern transition currTransition;
 extern effect currTransitionTarget;
 extern long transitionStart;
@@ -24,7 +24,7 @@ extern transition_function *transitions[NUM_TRAN_EFFECTS];
 extern WiFiManager wifiManager;
 
 
-extern char customMessage[MAX_CUSTOM_MESSAGE_LENGHT];
+extern char customMessage[MAX_CUSTOM_MESSAGE_LENGTH];
 extern unsigned long customMessageSet;
 extern unsigned long customMessageDuration;
 
@@ -54,7 +54,7 @@ uint8_t addFunction(transition_function* trans);
 
 /*
     initiates Transition
-    if a effect is 255 the current effect will be cept
+    if a effect is 255 the current effect will be kept
 */
 void initTransition(uint8_t transitionID, uint8_t ringEffectId = 255, uint8_t middEffectId = 255, uint8_t colorEffectId = 255);
 

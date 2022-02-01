@@ -12,10 +12,10 @@ struct color {
 struct effect;
 
 struct ringEffect {
-    void (*drawRing)(color* render_data, uint8_t pos, uint8_t len, effect* effect);
+    void (*drawRing)(color* render_data, uint8_t pos, uint8_t lng, effect* effect);
 };
 struct middEffect {
-    void (*drawMidd)(color* render_data, uint8_t pos, uint8_t len, effect* effect);
+    void (*drawMidd)(color* render_data, uint8_t pos, uint8_t lng, effect* effect);
 };
 
 struct effect {

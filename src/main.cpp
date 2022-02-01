@@ -38,7 +38,7 @@ middEffect middEffects[NUM_MIDD_EFFECTS];
 color_function *colorEffects[NUM_COLO_EFFECTS];
 transition_function *transitions[NUM_TRAN_EFFECTS];
 
-char customMessage[MAX_CUSTOM_MESSAGE_LENGHT];
+char customMessage[MAX_CUSTOM_MESSAGE_LENGTH];
 unsigned long customMessageSet = 0;
 unsigned long customMessageDuration = 1000;
 
@@ -55,7 +55,7 @@ effect currEffect = {
     .getColor = colorEffects[0],
 };
 
-bool isTransitiing = false;
+bool isTransitioning = false;
 transition currTransition = {
     .transition = transitions[0],
 };
@@ -136,7 +136,7 @@ void initTransition(uint8_t transitionID, uint8_t ringEffectId, uint8_t middEffe
     if(transitionID < transitionsAMT) currTransition.transition = transitions[transitionID];
         else currTransition.transition = transitions[0];
     transitionStart = millis();
-    isTransitiing = true;
+    isTransitioning = true;
 }
 
 void addDefaultEffects() {
@@ -158,13 +158,13 @@ void fastLEDdraw() {
 }
 
 void drawClock() {
-    if(isTransitiing) {
+    if(isTransitioning) {
         currEffect._ringEffect->drawRing(rd_t0, 0, SEGMENTOFFSET, &currEffect);
         currEffect._middEffect->drawMidd(rd_t0, SEGMENTOFFSET, NUM_LEDS - SEGMENTOFFSET, &currEffect);
         currTransitionTarget._ringEffect->drawRing(rd_t1, 0, SEGMENTOFFSET, &currTransitionTarget);
         currTransitionTarget._middEffect->drawMidd(rd_t1, SEGMENTOFFSET, NUM_LEDS - SEGMENTOFFSET, &currTransitionTarget);
         if(currTransition.transition(rd_c, rd_t0, rd_t1, millis() - transitionStart, 0, NUM_LEDS)) {
-            isTransitiing = false;
+            isTransitioning = false;
             currEffect.getColor = currTransitionTarget.getColor;
             currEffect._middEffect = currTransitionTarget._middEffect;
             currEffect._ringEffect = currTransitionTarget._ringEffect;

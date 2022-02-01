@@ -1,7 +1,7 @@
 #include "drawHelper.hpp"
 
-void fill(color* render_data, uint8_t pos, uint8_t len, color col) {
-    for(uint8_t i = pos; i < pos + len; i++) render_data[i] = col;
+void fill(color* render_data, uint8_t pos, uint8_t lng, color col) {
+    for(uint8_t i = pos; i < pos + lng; i++) render_data[i] = col;
 }
 
 uint8_t printChar(color* render_data, const char var, uint8_t position, color on, color off) {
@@ -107,13 +107,13 @@ uint8_t printChar(color* render_data, const char var, uint8_t position, color on
         0b0000000010000010, // =
     };
     uint16_t chr = chars[idx];
-    if(chr & 1) { // 14 seg
+    if(chr & 1) { // 14 segment
         for(uint8_t i = 0; i < 14; i++) render_data[i + position] = ((chr >> (i + 1)) & 1) ? on : off;
         return 14;
-    } else if ((chr >> 15) & 1) { // double space 7 seg
+    } else if ((chr >> 15) & 1) { // double 7 segment
         for(uint8_t i = 0; i < 28; i++) render_data[i + position] = ((chr >> ((i & 0xFFFE) / 2 + 1)) & 1) ? on : off;
         return 28;
-    } else { // normal 7 seg
+    } else { // normal 7 segment
         for(uint8_t i = 0; i < 14; i++) render_data[i + position] = ((chr >> ((i & 0xFFFE) / 2 + 1)) & 1) ? on : off;
         return 14;
     }
@@ -127,12 +127,12 @@ color fadeToBlack(color c, uint16_t numerator, uint16_t denominator) {
     };
 }
 
-void doCharPrint(uint8_t &textI, const uint8_t textMaxLenght, const char* text, color* rd, uint8_t &ci, const color on, const color off) {
-    if(textI < textMaxLenght && text[textI] != '\0') ci += printChar(rd, text[textI++], ci, on, off);
+void doCharPrint(uint8_t &textI, const uint8_t textMaxLength, const char* text, color* rd, uint8_t &ci, const color on, const color off) {
+    if(textI < textMaxLength && text[textI] != '\0') ci += printChar(rd, text[textI++], ci, on, off);
 }
 
-void checkColon(uint8_t &textI, const uint8_t textMaxLenght, const char* text, color* rd, uint8_t &ci, const color on, const color off, bool &doColon) {
-    if(textI < textMaxLenght && text[textI] != '\0') {
+void checkColon(uint8_t &textI, const uint8_t textMaxLength, const char* text, color* rd, uint8_t &ci, const color on, const color off, bool &doColon) {
+    if(textI < textMaxLength && text[textI] != '\0') {
         if(text[textI] == ':') {
             doColon = true;
             textI++;
@@ -140,23 +140,23 @@ void checkColon(uint8_t &textI, const uint8_t textMaxLenght, const char* text, c
     }
 }
 
-uint8_t drawCoustomText(color* renderdata, const char* text, uint8_t textMaxLenght, uint8_t pos, uint8_t length, color on, color off) {
+uint8_t drawCoustomText(color* render_data, const char* text, uint8_t textMaxLength, uint8_t pos, uint8_t length, color on, color off) {
     color rd[14*7];
     for(uint8_t j = 0; j < 14*7; j++) rd[j] = off;
     uint8_t textI = 0;
     uint8_t ci = 0;
     bool col0 = false;
     bool col1 = false;
-    if(ci == 14 * 0) doCharPrint(textI, textMaxLenght, text, rd, ci, on, off);
-    if(ci == 14 * 1) doCharPrint(textI, textMaxLenght, text, rd, ci, on, off);
-    if(ci == 14 * 2) checkColon(textI, textMaxLenght, text, rd, ci, on, off, col0);
-    if(ci == 14 * 2) doCharPrint(textI, textMaxLenght, text, rd, ci, on, off);
-    if(ci == 14 * 3) doCharPrint(textI, textMaxLenght, text, rd, ci, on, off);
-    if(ci == 14 * 4) checkColon(textI, textMaxLenght, text, rd, ci, on, off, col1);
-    if(ci == 14 * 4) doCharPrint(textI, textMaxLenght, text, rd, ci, on, off);
-    if(ci == 14 * 5) doCharPrint(textI, textMaxLenght, text, rd, ci, on, off);
+    if(ci == 14 * 0) doCharPrint(textI, textMaxLength, text, rd, ci, on, off);
+    if(ci == 14 * 1) doCharPrint(textI, textMaxLength, text, rd, ci, on, off);
+    if(ci == 14 * 2) checkColon(textI, textMaxLength, text, rd, ci, on, off, col0);
+    if(ci == 14 * 2) doCharPrint(textI, textMaxLength, text, rd, ci, on, off);
+    if(ci == 14 * 3) doCharPrint(textI, textMaxLength, text, rd, ci, on, off);
+    if(ci == 14 * 4) checkColon(textI, textMaxLength, text, rd, ci, on, off, col1);
+    if(ci == 14 * 4) doCharPrint(textI, textMaxLength, text, rd, ci, on, off);
+    if(ci == 14 * 5) doCharPrint(textI, textMaxLength, text, rd, ci, on, off);
     if(col0) fill(rd, 14*6 + 0, 2, on); else fill(rd, 14*6 + 0, 2, off);
     if(col1) fill(rd, 14*6 + 2, 2, on); else fill(rd, 14*6 + 2, 2, off);
-    for(uint8_t i = 0, j = pos; i < min(length, (uint8_t) (14*7)); i++, j++) renderdata[j] = rd[i];
+    for(uint8_t i = 0, j = pos; i < min(length, (uint8_t) (14*7)); i++, j++) render_data[j] = rd[i];
     return ci;
 }

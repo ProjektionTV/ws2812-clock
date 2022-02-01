@@ -160,7 +160,7 @@ uint8_t readNum(String &str, uint8_t &i) {
 
 void startMqtt() {
     if(useMqtt) {
-        Serial.println("settingup Mqtt Client");
+        Serial.println("setting up Mqtt Client");
         if(psCConf & 1) {
             psClient.setClient(wcs);
         } else {

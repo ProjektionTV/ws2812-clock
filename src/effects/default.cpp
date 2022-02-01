@@ -4,13 +4,13 @@
 namespace Effects {
     namespace Default {
         uint8_t digDrawn = 0;
-        uint8_t digS = 0;
+        uint8_t digStart = 0;
     } // namespace Default
 } // namespace Effects
 
 uint8_t Effects::Default::addMidd() {
     return addEffect({
-        .drawMidd = [](color* render_data, uint8_t pos, uint8_t len, effect* effect) -> void {
+        .drawMidd = [](color* render_data, uint8_t pos, uint8_t lng, effect* effect) -> void {
             uint8_t seconds = 0;
             uint8_t minutes = 0;
             uint8_t hours = 0;
@@ -43,22 +43,22 @@ uint8_t Effects::Default::addMidd() {
                 index += printChar(frd, second0, index, colA, colB);
                 fill(frd, index, 4, effect->getColor(5 + (drawColon ? 1 : 0)));
             }
-            for(uint8_t i = 0, j = pos; i < len; i++, j++) render_data[j] = frd[i];
+            for(uint8_t i = 0, j = pos; i < lng; i++, j++) render_data[j] = frd[i];
         }
     });
 }
 
 uint8_t Effects::Default::addRing() {
     return addEffect({
-        .drawRing = [](color* render_data, uint8_t pos, uint8_t len, effect* effect) -> void {
+        .drawRing = [](color* render_data, uint8_t pos, uint8_t lng, effect* effect) -> void {
             color frd[60];
             color colA = effect->getColor(0);
             color colB = effect->getColor(1);
             uint8_t sec = tm.tm_sec;
             uint8_t _60dSec = 60 - sec;
-            uint8_t expos = digDrawn + digS;
+            uint8_t expos = digDrawn + digStart;
             if(digDrawn < 60) {
-                uint8_t ndraw = sec < digS ? sec - digS + 60 : sec - digS;
+                uint8_t ndraw = sec < digStart ? sec - digStart + 60 : sec - digStart;
                 digDrawn = ndraw < digDrawn ? 60 : ndraw;
             }
             if(digDrawn >= 60)
@@ -66,8 +66,8 @@ uint8_t Effects::Default::addRing() {
                     frd[i] = fadeToBlack(((i + 1) % 5) ? colA : colB, (i < sec ? _60dSec + i : i - sec) + 20, 80);
             else
                 for(uint8_t i = 0; i < 60; i++)
-                    frd[i] = fadeToBlack(((i + 1) % 5) ? colA : colB, ((i < digS ? i + 60 : i) >= expos) ? 0 : ((i < sec ? _60dSec + i : i - sec) + 20), 80);
-            for(uint8_t i = 0, j = pos; i < len; i++, j++) render_data[j] = frd[i];
+                    frd[i] = fadeToBlack(((i + 1) % 5) ? colA : colB, ((i < digStart ? i + 60 : i) >= expos) ? 0 : ((i < sec ? _60dSec + i : i - sec) + 20), 80);
+            for(uint8_t i = 0, j = pos; i < lng; i++, j++) render_data[j] = frd[i];
         }
     });
 }
@@ -107,5 +107,5 @@ uint8_t Effects::Default::addTransition() {
 }
 
 void Effects::Default::init() {
-    digS = tm.tm_sec;
+    digStart = tm.tm_sec;
 }
