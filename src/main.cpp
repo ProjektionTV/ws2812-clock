@@ -10,14 +10,13 @@
 #include "settings.hpp"
 #include "drawHelper.hpp"
 #include "mqtt.hpp"
+#include "e131.hpp"
 
 #include "effects/default.hpp"
 #include "effects/hype.hpp"
 
-#define LED_PIN 5
 #define COLOR_ORDER GRB
 #define CHIPSET WS2812B
-#define NUM_LEDS 148
 
 #define SEGMENTOFFSET 60
 #define COLONOFFSET 144
@@ -173,7 +172,7 @@ void drawClock() {
         currEffect._ringEffect->drawRing(rd_c, 0, SEGMENTOFFSET, &currEffect);
         currEffect._middEffect->drawMidd(rd_c, SEGMENTOFFSET, NUM_LEDS - SEGMENTOFFSET, &currEffect);
     }
-    fastLEDdraw();
+    drawClockFlag = true;
 }
 
 void getNtpSync() {
@@ -214,8 +213,10 @@ void setup() {
     WiFi.mode(WIFI_STA);
     wifiManager.setDebugOutput(false);
     initMqtt();
+    initE131();
     wifiManager.setSaveParamsCallback([]() -> void {
         saveMqtt();
+        saveE131();
     });
     std::vector<const char *> menu = {"wifi","info","param","sep","restart","exit"};
     wifiManager.setMenu(menu);
@@ -237,6 +238,7 @@ void setup() {
     addDefaultEffects();
 
     startMqtt();
+    startE131();
 
     // OTA
 #if ENABLE_OTA
@@ -253,13 +255,14 @@ void setup() {
 }
 
 void loop() {
-    drawColon = ((millis() - msdiffsec) % 1000) < 500;
-    drawClockFlag = true;
     getLocalTime(&tm, 100);
+    loopMqtt();
+    drawColon = ((millis() - msdiffsec) % 1000) < 500;
     if(tm.tm_sec != lastLoopSec) msdiffsec = millis() % 1000;
     lastLoopSec = tm.tm_sec;
 
-    loopMqtt();
+    if(!loopE131())
+        drawClock();
 
 #if ENABLE_OTA
     ArduinoOTA.handle();
@@ -267,6 +270,6 @@ void loop() {
 
     if(drawClockFlag){
         drawClockFlag = false;
-        drawClock();
+        fastLEDdraw();
     }
 }

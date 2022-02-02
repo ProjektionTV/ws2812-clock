@@ -20,4 +20,7 @@
 
 #define LED_BRIGHTNESS 42
 
+#define NUM_LEDS 148
+#define LED_PIN 5
+
 #endif /* _SETTINGS_HPP_ */

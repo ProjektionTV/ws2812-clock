@@ -29,7 +29,7 @@
 
 1. go into setup
 2. go into `parameters`
-3. configure
+3. configure `MQTT` options
 4. click on `save`
 5. restart clock
 
@@ -78,6 +78,11 @@ start transition
 
 `e`
 
+#### s
+restart e1.31 connection
+
+`s`
+
 ## available effects
 
 ### ring
@@ -98,3 +103,11 @@ start transition
 
 * 0: direct cut
 * 1: moving border (2sec) (I don't know how to describe the transition)
+
+## E1.31
+
+1. go into setup
+2. go into `parameters`
+3. configure `E131` options
+4. click on `save`
+5. restart clock

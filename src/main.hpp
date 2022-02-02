@@ -7,6 +7,9 @@
 #include "types.hpp"
 #include "settings.hpp"
 
+extern bool drawClockFlag;
+extern color rd_c[NUM_LEDS];
+
 extern effect currEffect;
 
 extern bool isTransitioning;

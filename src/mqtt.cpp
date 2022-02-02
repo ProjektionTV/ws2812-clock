@@ -6,9 +6,11 @@
 #include <WiFiClientSecure.h>
 
 #include "main.hpp"
+#include "strUtil.hpp"
+#include "e131.hpp"
 
 PubSubClient psClient;
-Preferences preferences;
+Preferences psPreferences;
 
 uint8_t psCConf;
 uint16_t psCPort;
@@ -19,17 +21,17 @@ String psCPass;
 String psCTopic;
 bool useMqtt;
 
-WiFiManagerParameter paramDomain("psdomain", "Mqtt Host", "", 20);
-WiFiManagerParameter paramPort("psport", "Mqtt Port", "", 5);
-WiFiManagerParameter paramUser("psuser", "Mqtt User", "", 20);
-WiFiManagerParameter paramPass("pspass", "Mqtt Password", "", 20, " type=\"password\"");
-WiFiManagerParameter paramClId("psclid", "Mqtt Client Id", "", 20);
-WiFiManagerParameter paramTopic("pstopic", "Mqtt Topic", "", 20);
+WiFiManagerParameter psParamDomain("psdomain", "Mqtt Host", "", 20);
+WiFiManagerParameter psParamPort("psport", "Mqtt Port", "", 5);
+WiFiManagerParameter psParamUser("psuser", "Mqtt User", "", 20);
+WiFiManagerParameter psParamPass("pspass", "Mqtt Password", "", 20, " type=\"password\"");
+WiFiManagerParameter psParamClId("psclid", "Mqtt Client Id", "", 20);
+WiFiManagerParameter psParamTopic("pstopic", "Mqtt Topic", "", 20);
 
-WiFiManagerParameter paramOn("pson", "MQTT ON", "", 20, " type=\"checkbox\"");
-WiFiManagerParameter paramIsDomain("psisdomain", "MQTT IS DOMAIN", "", 20, " type=\"checkbox\"");
-WiFiManagerParameter paramSSL("psssl", "MQTT SSL", "", 20, " type=\"checkbox\"");
-WiFiManagerParameter paramAuth("psaouth", "MQTT AUTH", "", 20, " type=\"checkbox\"");
+WiFiManagerParameter psParamOn("pson", "MQTT ON", "", 20, " type=\"checkbox\"");
+WiFiManagerParameter psParamIsDomain("psisdomain", "MQTT IS DOMAIN", "", 20, " type=\"checkbox\"");
+WiFiManagerParameter psParamSSL("psssl", "MQTT SSL", "", 20, " type=\"checkbox\"");
+WiFiManagerParameter psParamAuth("psaouth", "MQTT AUTH", "", 20, " type=\"checkbox\"");
 
 
 WiFiClientSecure wcs;
@@ -53,16 +55,6 @@ void connectMqtt() {
             }
         }
     }
-}
-
-unsigned int readNum(unsigned int &i, uint8_t *data, unsigned int length) {
-    unsigned int t = 0;
-    while(length > i && data[i] >= '0' && data[i] <= '9') {
-        t *= 10;
-        t += data[i] - '0';
-        i++;
-    }
-    return t;
 }
 
 void mqttCallback(char * topic, uint8_t *payload, unsigned int length) {
@@ -105,57 +97,45 @@ void mqttCallback(char * topic, uint8_t *payload, unsigned int length) {
             case 'e': // execute transition
                 initTransition(t_t, t_r, t_m, t_c);
                 break;
+            case 's': // restart e1.31
+                startE131();
+                break;
         }
     }
 }
 
 void initMqtt() {
-    preferences.begin("mqtt");
-    psCDomain = preferences.getString("domain");
-    psCClientID = preferences.getString("client");
-    psCUser = preferences.getString("user");
-    psCPass = preferences.getString("password");
-    psCConf = preferences.getUChar("config");
-    psCPort = preferences.getUShort("port");
-    psCTopic = preferences.getString("topic");
-    preferences.end();
+    psPreferences.begin("mqtt");
+    psCDomain = psPreferences.getString("domain");
+    psCClientID = psPreferences.getString("client");
+    psCUser = psPreferences.getString("user");
+    psCPass = psPreferences.getString("password");
+    psCConf = psPreferences.getUChar("config");
+    psCPort = psPreferences.getUShort("port");
+    psCTopic = psPreferences.getString("topic");
+    psPreferences.end();
 
     useMqtt = (psCConf >> 3) & 1;
 
-    paramOn.setValue((((psCConf >> 3) & 1) ? "' checked '" : ""), 20);
-    paramDomain.setValue(psCDomain.c_str(), 20);
-    paramIsDomain.setValue((((psCConf >> 2) & 1) ? "' checked '" : ""), 20);
-    paramPort.setValue(String(psCPort).c_str(), 5);
-    paramSSL.setValue((((psCConf >> 0) & 1) ? "' checked '" : ""), 20);
-    paramAuth.setValue((((psCConf >> 1) & 1) ? "' checked '" : ""), 20);
-    paramUser.setValue(psCUser.c_str(), 20);
-    paramPass.setValue(psCPass.c_str(), 20);
-    paramClId.setValue(psCClientID.c_str(), 20);
-    paramTopic.setValue(psCTopic.c_str(), 20);
-    wifiManager.addParameter(&paramOn);
-    wifiManager.addParameter(&paramDomain);
-    wifiManager.addParameter(&paramIsDomain);
-    wifiManager.addParameter(&paramPort);
-    wifiManager.addParameter(&paramSSL);
-    wifiManager.addParameter(&paramUser);
-    wifiManager.addParameter(&paramPass);
-    wifiManager.addParameter(&paramClId);
-    wifiManager.addParameter(&paramTopic);
-}
-
-void skipToNum(String &str, uint8_t &i) {
-    while(str.length() > i && (!(str.charAt(i) >= '0' && str.charAt(i) <= '9'))) i++;
-}
-
-uint8_t readNum(String &str, uint8_t &i) {
-    skipToNum(str, i);
-    uint8_t t = 0;
-    while(psCDomain.length() > i && psCDomain.charAt(i) >= '0' && psCDomain.charAt(i) <= '9') {
-        t *= 10;
-        t += psCDomain.charAt(i) - '0';
-        i++;
-    }
-    return t;
+    psParamOn.setValue((((psCConf >> 3) & 1) ? "' checked '" : ""), 20);
+    psParamDomain.setValue(psCDomain.c_str(), 20);
+    psParamIsDomain.setValue((((psCConf >> 2) & 1) ? "' checked '" : ""), 20);
+    psParamPort.setValue(String(psCPort).c_str(), 5);
+    psParamSSL.setValue((((psCConf >> 0) & 1) ? "' checked '" : ""), 20);
+    psParamAuth.setValue((((psCConf >> 1) & 1) ? "' checked '" : ""), 20);
+    psParamUser.setValue(psCUser.c_str(), 20);
+    psParamPass.setValue(psCPass.c_str(), 20);
+    psParamClId.setValue(psCClientID.c_str(), 20);
+    psParamTopic.setValue(psCTopic.c_str(), 20);
+    wifiManager.addParameter(&psParamOn);
+    wifiManager.addParameter(&psParamDomain);
+    wifiManager.addParameter(&psParamIsDomain);
+    wifiManager.addParameter(&psParamPort);
+    wifiManager.addParameter(&psParamSSL);
+    wifiManager.addParameter(&psParamUser);
+    wifiManager.addParameter(&psParamPass);
+    wifiManager.addParameter(&psParamClId);
+    wifiManager.addParameter(&psParamTopic);
 }
 
 void startMqtt() {
@@ -205,20 +185,20 @@ void saveMqtt() {
     Serial.print("PS/usessl "); Serial.println((psCConf >> 0) & 1 ? "true" : "false");
     Serial.print("PS/auth "); Serial.println((psCConf >> 1) & 1 ? "true" : "false");
 
-    paramOn.setValue((((psCConf >> 3) & 1) ? "' checked '" : ""), 20);
-    paramIsDomain.setValue((((psCConf >> 2) & 1) ? "' checked '" : ""), 20);
-    paramSSL.setValue((((psCConf >> 0) & 1) ? "' checked '" : ""), 20);
-    paramAuth.setValue((((psCConf >> 1) & 1) ? "' checked '" : ""), 20);
+    psParamOn.setValue((((psCConf >> 3) & 1) ? "' checked '" : ""), 20);
+    psParamIsDomain.setValue((((psCConf >> 2) & 1) ? "' checked '" : ""), 20);
+    psParamSSL.setValue((((psCConf >> 0) & 1) ? "' checked '" : ""), 20);
+    psParamAuth.setValue((((psCConf >> 1) & 1) ? "' checked '" : ""), 20);
 
-    preferences.begin("mqtt");
-    preferences.putString("domain", psCDomain);
-    preferences.putString("client", psCClientID);
-    preferences.putString("user", psCUser);
-    preferences.putString("password", psCPass);
-    preferences.putString("topic", psCTopic);
-    preferences.putUShort("port", psCPort);
-    preferences.putUChar("config", psCConf);
-    preferences.end();
+    psPreferences.begin("mqtt");
+    psPreferences.putString("domain", psCDomain);
+    psPreferences.putString("client", psCClientID);
+    psPreferences.putString("user", psCUser);
+    psPreferences.putString("password", psCPass);
+    psPreferences.putString("topic", psCTopic);
+    psPreferences.putUShort("port", psCPort);
+    psPreferences.putUChar("config", psCConf);
+    psPreferences.end();
 }
 
 void loopMqtt() {
