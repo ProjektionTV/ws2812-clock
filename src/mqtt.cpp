@@ -65,15 +65,15 @@ void mqttCallback(char * topic, uint8_t *payload, unsigned int length) {
     Serial.println();
     unsigned int i = 0;
     uint8_t t_t = 0, t_r = 255, t_m = 255, t_c = 255;
-    unsigned int textl = 0;
+    int textl = 0;
     while(i < length) {
         switch (payload[i++]) {
             case 'm': // custom message
                 textl = readNum(i, payload, length);
                 if(i < length && payload[i] == ' ') i++;
-                for(uint8_t j = 0; j < min(textl, 8U); j++) customMessage[j] = (i < length) ? payload[i++] : '\0';
-                for(uint8_t j = min(textl, 8U); j < 8; j++) customMessage[j] = '\0';
-                if(textl > 8) i += textl - 8;
+                for(uint8_t j = 0; j < min(textl, MAX_CUSTOM_MESSAGE_LENGTH); j++) customMessage[j] = (i < length) ? payload[i++] : '\0';
+                for(uint8_t j = min(textl, MAX_CUSTOM_MESSAGE_LENGTH); j < MAX_CUSTOM_MESSAGE_LENGTH; j++) customMessage[j] = '\0';
+                if(textl > MAX_CUSTOM_MESSAGE_LENGTH) i += textl - MAX_CUSTOM_MESSAGE_LENGTH;
                 customMessageSet = millis();
                 break;
             case 'd': // custom message duration

@@ -272,4 +272,5 @@ void loop() {
         drawClockFlag = false;
         fastLEDdraw();
     }
+    delay(100);
 }

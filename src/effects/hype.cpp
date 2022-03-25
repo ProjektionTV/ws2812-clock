@@ -6,7 +6,7 @@
 uint8_t Effects::Hype::addRing() {
     return addEffect({
         .drawRing = [](color* render_data, uint8_t pos, uint8_t lng, effect* effect) -> void {
-            color frd[60];
+            color *frd = (color *)malloc((60)*sizeof(color));
             CHSV hsv;
             CRGB rgb;
             hsv.setHSV(0, 255, 255);
@@ -19,6 +19,7 @@ uint8_t Effects::Hype::addRing() {
                 frd[i] = {.r=rgb.r, .g=rgb.g, .b=rgb.b};
             }
             for(uint8_t i = 0, j = pos; i < lng; i++, j++) render_data[j] = frd[i];
+            free(frd);
         }
     });
 }
@@ -41,12 +42,13 @@ uint8_t Effects::Hype::addColor() {
 
 uint8_t Effects::Hype::addTransition() {
     return addFunction([](color* render_data, color* effect_a, color* effect_b, long ms_since_start, uint8_t pos, uint8_t lng) -> bool {
-        color frd[148];
+        color *frd = (color *)malloc((148)*sizeof(color));
         constexpr int duration = 2000;
         for(uint8_t i = 0; i < 148; i++) frd[i] = effect_a[i];
         for(uint8_t i = 0; i < min((60 * (int) ms_since_start) / duration, 60); i++) frd[i] = effect_b[i];
         for(uint8_t i = 60; i < min(((88 * (int) ms_since_start) / duration) + 60, 148); i++) frd[i] = effect_b[i];
         for(uint8_t i = 0, j = pos; i < lng; i++, j++) render_data[j] = frd[i];
+        free(frd);
         return ms_since_start > duration;
     });
 }

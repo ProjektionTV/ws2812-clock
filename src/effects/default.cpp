@@ -29,7 +29,7 @@ uint8_t Effects::Default::addMidd() {
             uint8_t hour1 = hours / 10 + '0';
 
             uint8_t index = 0;
-            color frd[14*6+4];
+            color *frd = (color *)malloc((14*6+4)*sizeof(color));
             if(customMessageSet + customMessageDuration > millis()){
                 drawCoustomText(frd, customMessage, 8, 0, 14*6+4, effect->getColor(7), effect->getColor(5));
             } else {
@@ -44,6 +44,7 @@ uint8_t Effects::Default::addMidd() {
                 fill(frd, index, 4, effect->getColor(5 + (drawColon ? 1 : 0)));
             }
             for(uint8_t i = 0, j = pos; i < lng; i++, j++) render_data[j] = frd[i];
+            free(frd);
         }
     });
 }
@@ -51,7 +52,7 @@ uint8_t Effects::Default::addMidd() {
 uint8_t Effects::Default::addRing() {
     return addEffect({
         .drawRing = [](color* render_data, uint8_t pos, uint8_t lng, effect* effect) -> void {
-            color frd[60];
+            color *frd = (color *)malloc((60)*sizeof(color));
             color colA = effect->getColor(0);
             color colB = effect->getColor(1);
             uint8_t sec = tm.tm_sec;
@@ -68,6 +69,7 @@ uint8_t Effects::Default::addRing() {
                 for(uint8_t i = 0; i < 60; i++)
                     frd[i] = fadeToBlack(((i + 1) % 5) ? colA : colB, ((i < digStart ? i + 60 : i) >= expos) ? 0 : ((i < sec ? _60dSec + i : i - sec) + 20), 80);
             for(uint8_t i = 0, j = pos; i < lng; i++, j++) render_data[j] = frd[i];
+            free(frd);
         }
     });
 }

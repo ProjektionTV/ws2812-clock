@@ -53,7 +53,7 @@ bool loopE131() {
             e131_packet_t packet;
             while(!e131.isEmpty()) {
                 e131.pull(&packet);
-                for(uint8_t i = 0; i < min(NUM_LEDS, NUM_LEDS); i++)
+                for(uint8_t i = 0; i < min(NUM_LEDS, (packet.property_value_count - 1) / 3); i++)
                     rd_c[i] = {.r=packet.property_values[i*3+1],.g=packet.property_values[i*3+2],.b=packet.property_values[i*3+3]};
             }
             drawClockFlag = true;

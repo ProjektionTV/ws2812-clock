@@ -24,7 +24,7 @@ uint8_t printChar(color* render_data, const char var, uint8_t position, color on
     if(var == ';') idx = 49;
     if(var == '~') idx = 50;
     if(var == '=') idx = 51;
-    uint16_t chars[] = {
+    const static uint16_t chars[] = {
         /*
             0b0'xxxxxxx'gfedcba'0:
              aa 
@@ -106,7 +106,7 @@ uint8_t printChar(color* render_data, const char var, uint8_t position, color on
         0b0110010000010001, // ~
         0b0000000010000010, // =
     };
-    uint16_t chr = chars[idx];
+    const uint16_t chr = chars[idx];
     if(chr & 1) { // 14 segment
         for(uint8_t i = 0; i < 14; i++) render_data[i + position] = ((chr >> (i + 1)) & 1) ? on : off;
         return 14;
@@ -141,8 +141,8 @@ void checkColon(uint8_t &textI, const uint8_t textMaxLength, const char* text, c
 }
 
 uint8_t drawCoustomText(color* render_data, const char* text, uint8_t textMaxLength, uint8_t pos, uint8_t length, color on, color off) {
-    color rd[14*7];
-    for(uint8_t j = 0; j < 14*7; j++) rd[j] = off;
+    color *rd = (color *)malloc((14*7)*sizeof(color));
+    fill(rd, 0, 14*7, off);
     uint8_t textI = 0;
     uint8_t ci = 0;
     bool col0 = false;
@@ -155,8 +155,9 @@ uint8_t drawCoustomText(color* render_data, const char* text, uint8_t textMaxLen
     if(ci == 14 * 4) checkColon(textI, textMaxLength, text, rd, ci, on, off, col1);
     if(ci == 14 * 4) doCharPrint(textI, textMaxLength, text, rd, ci, on, off);
     if(ci == 14 * 5) doCharPrint(textI, textMaxLength, text, rd, ci, on, off);
-    if(col0) fill(rd, 14*6 + 0, 2, on); else fill(rd, 14*6 + 0, 2, off);
-    if(col1) fill(rd, 14*6 + 2, 2, on); else fill(rd, 14*6 + 2, 2, off);
+    fill(rd, 14*6 + 0, 2, col0 ? on : off);
+    fill(rd, 14*6 + 2, 2, col1 ? on : off);
     for(uint8_t i = 0, j = pos; i < min(length, (uint8_t) (14*7)); i++, j++) render_data[j] = rd[i];
+    free(rd);
     return ci;
 }
