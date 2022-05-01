@@ -1,8 +1,9 @@
 #include <Arduino.h>
-#include <WiFi.h>
+#include <wifictrl.h>
+#include <ArduinoOTA.h>
 #include <Time.h>
 #include <FastLED.h>
-#include <WiFiManager.h>
+#include <ESPAsyncE131.h>
 
 #define MY_NTP_SERVER "de.pool.ntp.org"
 #define MY_TZ "CET-1CEST,M3.5.0/02,M10.5.0/03"
@@ -14,6 +15,11 @@
 
 #define SEGMENTOFFSET 60
 #define COLONOFFSET 144
+
+#define UNIVERSE 1                      // First DMX Universe to listen for
+#define UNIVERSE_COUNT 1                // Total number of Universes to listen for, starting at UNIVERSE
+
+ESPAsyncE131 e131(UNIVERSE_COUNT);
 
 CRGB leds[NUM_LEDS];
 
@@ -215,25 +221,9 @@ void setup()
 
   ledInit();
 
-  WiFi.mode(WIFI_STA);
+  wifictrl.setupWifiPortal("ws2812-clock");
 
-  WiFiManager wifiManager;
-
-  wifiManager.setDebugOutput(false);
-
-  bool res;
-  res = wifiManager.autoConnect("ws2812-clock");
-
-  if (!res)
-  {
-    Serial.println("Failed to connect");
-    delay(2500);
-    ESP.restart();
-  }
-  else
-  {
-    Serial.println("WiFi connected...");
-  }
+  ArduinoOTA.begin();
 
   configTime(0, 0, MY_NTP_SERVER); // 0, 0 because we will use TZ in the next line
   setenv("TZ", MY_TZ, 1);          // Set environment variable with your time zone
@@ -246,11 +236,44 @@ void setup()
   waitingForNtpSync();
 
   timerAlarmEnable(timer);
+
+  if (e131.begin(E131_MULTICAST, UNIVERSE, UNIVERSE_COUNT))   // Listen via Multicast
+      Serial.println(F("Listening for data..."));
+  else 
+      Serial.println(F("*** e131.begin failed ***"));
+
 }
+
+
 
 void loop()
 {
-  if (newClockDrawFlag)
+  wifictrl.check();
+  ArduinoOTA.handle();
+  static uint32_t lastMulticastRxMs = 0;
+
+  if(!e131.isEmpty())
+  {
+    lastMulticastRxMs = millis();
+    e131_packet_t packet;
+    e131.pull(&packet);     // Pull packet from ring buffer
+    
+    // Serial.printf("Universe %u / %u Channels | Packet#: %u / Errors: %u / CH1: %u\n",
+    //   htons(packet.universe),                 // The Universe for this packet
+    //   htons(packet.property_value_count) - 1, // Start code is ignored, we're interested in dimmer data
+    //   e131.stats.num_packets,                 // Packet counter
+    //   e131.stats.packet_errors,               // Packet error counter
+    //   packet.property_values[1]);             // Dimmer data for Channel 1
+
+    for(uint8_t i=0; i<NUM_LEDS;i++)
+    {
+      leds[i] = CRGB(packet.property_values[i*3+1], packet.property_values[i*3+2], packet.property_values[i*3+3]);
+    }
+    FastLED.show();
+  }
+
+
+  if(millis() > (lastMulticastRxMs + 3000) && newClockDrawFlag)
   {
     newClockDrawFlag = false;
     time(&now);
