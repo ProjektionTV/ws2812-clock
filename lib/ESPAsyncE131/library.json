@@ -11,8 +11,5 @@
     "name": "Shelby Merrick",
     "url": "http://forkineye.com",
     "maintainer": true
-  },
-  "frameworks": "arduino",
-  "platforms": ["espressif32"],
-  "headers": "ESPAsyncE131.h"
+  }
 }

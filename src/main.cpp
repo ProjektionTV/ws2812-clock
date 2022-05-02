@@ -5,6 +5,7 @@
 #include <FastLED.h>
 #include <WiFiManager.h>
 #include <ArduinoOTA.h>
+#include <wifictrl.h>
 
 #include "types.hpp"
 #include "settings.hpp"
@@ -20,8 +21,6 @@
 
 #define SEGMENTOFFSET 60
 #define COLONOFFSET 144
-
-WiFiManager wifiManager;
 
 struct tm tm;
 uint16_t msdiffsec = 0;
@@ -186,6 +185,7 @@ void getNtpSync() {
     Serial.println(msdiffsec);
 }
 
+
 void handleBootButton() {
     bool a = false;
     if(!digitalRead(0)) a = true;
@@ -210,7 +210,10 @@ void setup() {
     ledInit();
 
     // wifi
+    Serial.print("Attempting WiFi connection... ");
     WiFi.mode(WIFI_STA);
+    WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
+    WiFi.setHostname(WIFI_AP_NAME);
     wifiManager.setDebugOutput(false);
     initMqtt();
     initE131();
@@ -226,12 +229,11 @@ void setup() {
     // auto connect
     bool res;
     if(!(res = wifiManager.autoConnect(WIFI_AP_NAME, WIFI_AP_PASSWORD))) {
-        Serial.println("Faild to connect to Wifi!");
+        Serial.println("failed! -> Reset");
         delay(2500);
         ESP.restart();
     }
-    Serial.println("WiFi connected...");
-    Serial.print("Current IP: ");
+    Serial.print("connected, IP: ");
     Serial.println(WiFi.localIP().toString());
     // wifi connected
 
@@ -255,6 +257,7 @@ void setup() {
 }
 
 void loop() {
+    wifictrl.check();
     getLocalTime(&tm, 100);
     loopMqtt();
     drawColon = ((millis() - msdiffsec) % 1000) < 500;
