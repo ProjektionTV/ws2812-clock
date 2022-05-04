@@ -258,7 +258,7 @@ void setup() {
 
 void loop() {
     wifictrl.check();
-    getLocalTime(&tm, 100);
+    getLocalTime(&tm, 60);
     loopMqtt();
     drawColon = ((millis() - msdiffsec) % 1000) < 500;
     if(tm.tm_sec != lastLoopSec) msdiffsec = millis() % 1000;
@@ -275,5 +275,5 @@ void loop() {
         drawClockFlag = false;
         fastLEDdraw();
     }
-    delay(100);
+    delay(30);
 }
