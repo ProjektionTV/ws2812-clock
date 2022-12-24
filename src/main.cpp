@@ -1,64 +1,103 @@
 #include <Arduino.h>
-#include <wifictrl.h>
+#include <settings.h>
+#include <configuration.h>
 #include <ArduinoOTA.h>
 #include <Time.h>
 #include <FastLED.h>
 #include <ESPAsyncE131.h>
+#include <ESPNtpClient.h>
+#include <version.h>
 
 #define MY_NTP_SERVER "de.pool.ntp.org"
 #define MY_TZ "CET-1CEST,M3.5.0/02,M10.5.0/03"
 
-#define LED_PIN 5
-#define COLOR_ORDER GRB
-#define CHIPSET WS2812B
-#define NUM_LEDS 148
-
-#define SEGMENTOFFSET 60
-#define COLONOFFSET 144
-
-#define UNIVERSE 1                      // First DMX Universe to listen for
-#define UNIVERSE_COUNT 1                // Total number of Universes to listen for, starting at UNIVERSE
-
+extern Configuration config;
 ESPAsyncE131 e131(UNIVERSE_COUNT);
 
 CRGB leds[NUM_LEDS];
 
-CRGB colorDigits = CRGB(0, 0, 255);
-CRGB colorColon = CRGB(255, 255, 0);
-CRGB colorSeconds = CRGB(0, 255, 0);
-CRGB colorSeconds5 = CRGB(255, 0, 0);
+CRGB colorDigits = COLOR_DIGITS;
+CRGB colorColon = COLOR_COLON;
+CRGB colorSeconds = COLOR_SECONDS;
+CRGB colorSeconds5 = COLOR_SECONDS5;
 
-hw_timer_t *timer = NULL;
-time_t now;
-struct tm tm;
-
-volatile bool halfSecondFlag = false;
-volatile bool newClockDrawFlag = false;
-
+void draw();
+bool oncePerHalfSecond(bool *lowerHalf);
+bool e131RX();
 void ledInit();
-void printClock();
+void printClock(bool showSecondsFlag, bool drawColonFlag);
 void printDigit(uint8_t value, uint8_t position);
 void showColon(int flag);
 void showSeconds(uint8_t seconds);
-void waitingForNtpSync();
+void secondsRingInit();
+void clearScreen();
+void printVersionInfo();
+void printConfigStatus();
 
-void IRAM_ATTR onTimer()
+void clearScreen()
 {
-  halfSecondFlag = !halfSecondFlag;
-  newClockDrawFlag = true;
+  FastLED.clear();
+  delay(1);
+  FastLED.show();
+}
+
+void printConfigStatus()
+{
+  FastLED.clear();
+  for(int i=0; i<NUM_LEDS; i++)
+  {
+    leds[i] = CRGB(255, 0, 0);
+  }
+  delay(1);
+  FastLED.show();  
+}
+
+void printVersionInfo()
+{
+  FastLED.clear();
+
+  printDigit(VERSION_PATCH % 10, 5);
+  printDigit((VERSION_PATCH / 10) % 10, 4);
+  
+  printDigit(VERSION_MINOR % 10, 3);
+  printDigit((VERSION_MINOR / 10) % 10, 2);
+  
+  printDigit(VERSION_MAJOR % 10, 1);
+  printDigit((VERSION_MAJOR / 10) % 10, 0);
+  delay(1);
+  FastLED.show();
+}
+
+void secondsRingInit()
+{
+  time_t now;
+  struct tm tm;
+  
+  time(&now);
+  localtime_r(&now, &tm);
+
+  uint16_t seconds = tm.tm_sec + 1;
+
+  FastLED.clearData();
+  for(int i=seconds; i<(seconds+60);i++)
+  {
+    showSeconds(i%60);
+    showSeconds(i%60);
+  }  
 }
 
 void ledInit()
 {
   FastLED.addLeds<CHIPSET, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
-  FastLED.setBrightness(42);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, LED_MAX_MILLIAMP);
+  FastLED.setBrightness(CLOCK_BRIGHTNESS);
   FastLED.clear();
 
   for (int i = 0; i < NUM_LEDS; i++)
   {
     leds[i] = CRGB(255, 255, 255);
     FastLED.show();
-    delay(10);
+    delay(1);
   }
   delay(500);
 
@@ -121,6 +160,9 @@ void showColon(int flag)
 
 void printDigit(uint8_t value, uint8_t position)
 {
+  value = constrain(value, 0, 10);
+  position = constrain(position, 0, 5);
+
   uint8_t segment[11][14] =
   {
     {// 0
@@ -160,11 +202,16 @@ void printDigit(uint8_t value, uint8_t position)
   }
 }
 
-void printClock()
+void printClock(bool showSecondsFlag, bool drawColonFlag)
 {
   uint8_t seconds = 0;
   uint8_t minutes = 0;
   uint8_t hours = 0;
+  time_t now;
+  struct tm tm;
+  
+  time(&now);
+  localtime_r(&now, &tm);
 
   seconds = tm.tm_sec;
   minutes = tm.tm_min;
@@ -188,96 +235,143 @@ void printClock()
   printDigit(hour0, 1);
   printDigit(hour1, 0);
 
-  showSeconds(seconds);
-  showColon(halfSecondFlag);
-
-  FastLED.show();
-}
-
-void waitingForNtpSync()
-{
-  time(&now);
-  localtime_r(&now, &tm);
-
-  while (tm.tm_year <= 70)
-  {
-    time(&now);
-    localtime_r(&now, &tm);
-  }
-
-  int sec = tm.tm_sec;
-  while (sec == tm.tm_sec)
-  {
-    time(&now);
-    localtime_r(&now, &tm);
-  }
-  delay(250);
+  if(showSecondsFlag)
+    showSeconds(seconds);
+  showColon(drawColonFlag);
 }
 
 void setup()
 {
+  pinMode(0, INPUT_PULLUP); // low for config-mode; ESP32 = D0; ESP8266 = D3
   Serial.begin(115200);
   Serial.println();
 
+  Serial.println("Press BootButton for ConfigPortal.");
   ledInit();
+  clearScreen();
+  printVersionInfo();
+  delay(2000);
 
-  wifictrl.setupWifiPortal("ws2812-clock");
+  bool config_flag = !digitalRead(0);
+  
+  if(config_flag)
+    printConfigStatus();
+
+  config.setupWifiPortal("ws2812-clock", config_flag);
+
+  clearScreen();
 
   ArduinoOTA.begin();
 
-  configTime(0, 0, MY_NTP_SERVER); // 0, 0 because we will use TZ in the next line
-  setenv("TZ", MY_TZ, 1);          // Set environment variable with your time zone
-  tzset();
+  NTP.setTimeZone(MY_TZ);
+  NTP.begin(MY_NTP_SERVER);
 
-  timer = timerBegin(0, 80, true);
-  timerAttachInterrupt(timer, &onTimer, true);
-  timerAlarmWrite(timer, 500000, true);
-
-  waitingForNtpSync();
-
-  timerAlarmEnable(timer);
-
-  if (e131.begin(E131_MULTICAST, UNIVERSE, UNIVERSE_COUNT))   // Listen via Multicast
+  if (e131.begin(E131_MULTICAST, config.getUniverse(), UNIVERSE_COUNT))   // Listen via Multicast
       Serial.println(F("Listening for data..."));
   else 
       Serial.println(F("*** e131.begin failed ***"));
 
 }
 
+bool e131RX()
+{
+  static uint32_t colorAverage = 0;
+
+  if(!e131.isEmpty())
+  {
+    colorAverage = 0;
+
+    e131_packet_t packet;
+    e131.pull(&packet);
+
+    uint8_t cnt = 0;
+
+    for(uint8_t i=0; i<UNIVERSE_LENGTH;i++)
+    {
+      CRGB color = CRGB(packet.property_values[i*3+1], packet.property_values[i*3+2], packet.property_values[i*3+3]);
+    
+      CHSV hsvColor = rgb2hsv_approximate(color);
+      if(hsvColor.v > 16)
+      {
+        colorAverage += hsvColor.hue;
+        cnt++;
+      }
+
+      int o = map(i,0,143,0,59);
+      leds[o] = color;
+    }
+
+    if(cnt)
+      colorAverage /= cnt;
+
+    colorDigits = CHSV(colorAverage, 255, 128);
+    colorColon = CHSV(colorAverage+128, 255, 128);
+    return true;
+  }
+  return false;
+}
+
+bool oncePerHalfSecond(bool *lowerHalf)
+{
+  static bool oldFlag = false;
+  bool flag = (NTP.millis() % 1000) < 500;
+  *lowerHalf = flag;
+
+  if(flag != oldFlag)
+  {
+    oldFlag = flag;
+    return true;
+  }
+  return false;
+}
+
+void draw()
+{
+  uint32_t ms = millis();
+  static uint32_t lastMulticastRxMs = ms;
+  static uint32_t lastDrawMs = ms;
+  static bool showSecondsFlag = false;
+  static bool firstTimeout = false;
+
+  if(ms > (lastMulticastRxMs + 2000))
+  {
+    if(firstTimeout)
+    {
+      FastLED.setBrightness(CLOCK_BRIGHTNESS);
+      secondsRingInit();
+    }
+    colorDigits = COLOR_DIGITS;
+    colorColon = COLOR_COLON;
+    showSecondsFlag = true;
+    firstTimeout=false;
+  }
+
+  if(e131RX())
+  {
+    lastMulticastRxMs = ms;
+    showSecondsFlag = false;
+    firstTimeout=true;
+    FastLED.setBrightness(E131_BRIGHTNESS);
+    printClock(showSecondsFlag, (NTP.millis() % 1000) < 500);
+    lastDrawMs = ms;
+    FastLED.show();
+  }
+  else
+  {
+    bool drawColon = false;
+    if((ms > lastDrawMs+10) && oncePerHalfSecond(&drawColon))
+    {
+      printClock(showSecondsFlag, drawColon);
+      lastDrawMs = ms;
+      FastLED.show();
+    }
+  }
+}
 
 
 void loop()
 {
-  wifictrl.check();
+  config.connectionGuard();
   ArduinoOTA.handle();
-  static uint32_t lastMulticastRxMs = 0;
-
-  if(!e131.isEmpty())
-  {
-    lastMulticastRxMs = millis();
-    e131_packet_t packet;
-    e131.pull(&packet);     // Pull packet from ring buffer
-    
-    // Serial.printf("Universe %u / %u Channels | Packet#: %u / Errors: %u / CH1: %u\n",
-    //   htons(packet.universe),                 // The Universe for this packet
-    //   htons(packet.property_value_count) - 1, // Start code is ignored, we're interested in dimmer data
-    //   e131.stats.num_packets,                 // Packet counter
-    //   e131.stats.packet_errors,               // Packet error counter
-    //   packet.property_values[1]);             // Dimmer data for Channel 1
-
-    for(uint8_t i=0; i<NUM_LEDS;i++)
-    {
-      leds[i] = CRGB(packet.property_values[i*3+1], packet.property_values[i*3+2], packet.property_values[i*3+3]);
-    }
-    FastLED.show();
-  }
-
-
-  if(millis() > (lastMulticastRxMs + 3000) && newClockDrawFlag)
-  {
-    newClockDrawFlag = false;
-    time(&now);
-    localtime_r(&now, &tm);
-    printClock();
-  }
+  draw();
 }
