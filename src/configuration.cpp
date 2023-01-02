@@ -32,6 +32,9 @@ void Configuration::setupWifiPortal(String hostName, bool configPortal)
     WiFiManagerParameter custom_universe("universe", "Universe", universe.c_str(), 5);
     wifiManager.addParameter(&custom_universe);
 
+    WiFiManagerParameter custom_maxmilliamp("maxmilliamp", "max. mA", maxmilliamp.c_str(), 5);
+    wifiManager.addParameter(&custom_maxmilliamp);
+
     wifiManager.setSaveConfigCallback(saveConfigCallback);
     wifiManager.setSaveParamsCallback(saveParamsCallback);
 
@@ -57,10 +60,17 @@ void Configuration::setupWifiPortal(String hostName, bool configPortal)
         }             
     }
     universe = custom_universe.getValue();
+    maxmilliamp = custom_maxmilliamp.getValue();
 
     if((universe.toInt() < 1) || (universe.toInt() > 255))
     {
         universe = String(UNIVERSE);
+        shouldSave = true;
+    }
+
+    if(maxmilliamp.toInt() < 500)
+    {
+        maxmilliamp = String(LED_MAX_MILLIAMP);
         shouldSave = true;
     }
 
@@ -108,6 +118,7 @@ void Configuration::save()
     JsonObject &json = jsonBuffer.createObject();
 #endif
     json["universe"] = universe;
+    json["maxmilliamp"] = maxmilliamp;
 
     File configFile = SPIFFS.open("/config.json", "w");
     if (!configFile)
@@ -167,11 +178,14 @@ void Configuration::setupSPIFF()
 #endif
                     // Serial.println("\nparsed json");
                     String strUniverse = json["universe"];
+                    String strMaxmilliamp = json["maxmilliamp"];
 
                     universe = strUniverse;
+                    maxmilliamp = strMaxmilliamp;
 
                     Serial.printf("Config Restored\n");
                     Serial.printf(" Universe:\t %s\n", universe.c_str());
+                    Serial.printf(" max mA:\t %s\n", maxmilliamp.c_str());
                 }
                 else
                 {

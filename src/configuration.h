@@ -22,9 +22,11 @@ public:
     void connectionGuard();
 
     uint16_t getUniverse() {return universe.toInt();};
+    uint16_t getMaxmilliamp() {return maxmilliamp.toInt();};
 
 private:
     String universe = String(UNIVERSE);
+    String maxmilliamp = String(LED_MAX_MILLIAMP);
 
     void save();
     void setupSPIFF();
