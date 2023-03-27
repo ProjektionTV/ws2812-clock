@@ -14,6 +14,11 @@
 #include <SPIFFS.h>
 #endif
 
+#define MQTT_HOST "cb.twitchbridge.de"
+#define MQTT_USER "user"
+#define MQTT_PASSWORD "password"
+
+
 
 class Configuration
 {
@@ -23,10 +28,18 @@ public:
 
     uint16_t getUniverse() {return universe.toInt();};
     uint16_t getMaxmilliamp() {return maxmilliamp.toInt();};
+    const char *getMQTTHost() { return mqttHost.c_str(); };
+    const char *getMQTTUser() { return mqttUser.c_str(); };
+    const char *getMQTTPassword() { return mqttPassword.c_str(); };
+
 
 private:
     String universe = String(UNIVERSE);
     String maxmilliamp = String(LED_MAX_MILLIAMP);
+    String mqttHost = MQTT_HOST;
+    String mqttUser = MQTT_USER;
+    String mqttPassword = MQTT_PASSWORD;
+    bool isMaster = false;
 
     void save();
     void setupSPIFF();

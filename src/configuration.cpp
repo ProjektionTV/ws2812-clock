@@ -29,11 +29,31 @@ void Configuration::setupWifiPortal(String hostName, bool configPortal)
     // WiFiManagerParameter custom_html("<p>This Is Custom HTML</p>"); // only custom html
     // wifiManager.addParameter(&custom_html);
 
+    WiFiManagerParameter custom_mqtt_server("server", "mqtt server", mqttHost.c_str(), 40);
+    wifiManager.addParameter(&custom_mqtt_server);
+
+    WiFiManagerParameter custom_mqtt_user("user", "mqtt user", mqttUser.c_str(), 40);
+    wifiManager.addParameter(&custom_mqtt_user);
+
+    WiFiManagerParameter custom_mqtt_password("password", "mqtt password", mqttPassword.c_str(), 40);
+    wifiManager.addParameter(&custom_mqtt_password);
+
     WiFiManagerParameter custom_universe("universe", "Universe", universe.c_str(), 5);
     wifiManager.addParameter(&custom_universe);
 
     WiFiManagerParameter custom_maxmilliamp("maxmilliamp", "max. mA", maxmilliamp.c_str(), 5);
     wifiManager.addParameter(&custom_maxmilliamp);
+
+    char _custom_checkbox_master[32] = "type=\"checkbox\"";
+
+    if(isMaster)
+    {
+        strcat(_custom_checkbox_master, " checked");
+    }
+
+    WiFiManagerParameter custom_checkbox_is_master("ismaster", "Master", "T", 2, _custom_checkbox_master, WFM_LABEL_AFTER);
+    wifiManager.addParameter(&custom_checkbox_is_master);
+
 
     wifiManager.setSaveConfigCallback(saveConfigCallback);
     wifiManager.setSaveParamsCallback(saveParamsCallback);
@@ -59,8 +79,13 @@ void Configuration::setupWifiPortal(String hostName, bool configPortal)
             Serial.printf("connected, IP: %s\n", WiFi.localIP().toString().c_str());
         }             
     }
+
+    mqttHost = custom_mqtt_server.getValue();
+    mqttUser = custom_mqtt_user.getValue();
+    mqttPassword = custom_mqtt_password.getValue();    
     universe = custom_universe.getValue();
     maxmilliamp = custom_maxmilliamp.getValue();
+    isMaster = (strncmp(custom_checkbox_is_master.getValue(), "T", 1) == 0);
 
     if((universe.toInt() < 1) || (universe.toInt() > 255))
     {
@@ -111,14 +136,13 @@ void Configuration::connectionGuard()
 void Configuration::save()
 {
     Serial.println("saving config");
-#if ARDUINOJSON_VERSION_MAJOR >= 6
     DynamicJsonDocument json(1024);
-#else
-    DynamicJsonBuffer jsonBuffer;
-    JsonObject &json = jsonBuffer.createObject();
-#endif
+    json["mqtt_host"] = mqttHost;
+    json["mqtt_user"] = mqttUser;
+    json["mqtt_password"] = mqttPassword;    
     json["universe"] = universe;
     json["maxmilliamp"] = maxmilliamp;
+    json["is_master"] = isMaster;
 
     File configFile = SPIFFS.open("/config.json", "w");
     if (!configFile)
@@ -126,13 +150,8 @@ void Configuration::save()
         Serial.println("failed to open config file for writing");
     }
 
-#if ARDUINOJSON_VERSION_MAJOR >= 6
-    serializeJson(json, Serial);
+    //serializeJson(json, Serial);
     serializeJson(json, configFile);
-#else
-    json.printTo(Serial);
-    json.printTo(configFile);
-#endif
     configFile.close();
     // end save
 }
@@ -142,11 +161,7 @@ void Configuration::setupSPIFF()
 {
     Serial.println("mounting FS...");
 
-#ifdef ESP32
     if (SPIFFS.begin(true))
-#else
-    if (SPIFFS.begin())
-#endif
     {
         Serial.println("mounted file system");
         if (SPIFFS.exists("/config.json"))
@@ -163,29 +178,33 @@ void Configuration::setupSPIFF()
 
                 configFile.readBytes(buf.get(), size);
 
-#if ARDUINOJSON_VERSION_MAJOR >= 6
                 DynamicJsonDocument json(1024);
                 auto deserializeError = deserializeJson(json, buf.get());
                 // serializeJson(json, Serial);
                 if (!deserializeError)
                 {
-#else
-                DynamicJsonBuffer jsonBuffer;
-                JsonObject &json = jsonBuffer.parseObject(buf.get());
-                json.printTo(Serial);
-                if (json.success())
-                {
-#endif
                     // Serial.println("\nparsed json");
+                    String host = json["mqtt_host"];
+                    String user = json["mqtt_user"];
+                    String password = json["mqtt_password"];                    
                     String strUniverse = json["universe"];
                     String strMaxmilliamp = json["maxmilliamp"];
+                    bool ismaster = json["is_master"];
 
+                    mqttHost = host;
+                    mqttUser = user;
+                    mqttPassword = password;
                     universe = strUniverse;
                     maxmilliamp = strMaxmilliamp;
+                    isMaster = ismaster;
 
                     Serial.printf("Config Restored\n");
+                    Serial.printf(" mqtt_host:\t %s\n", mqttHost.c_str());
+                    Serial.printf(" mqtt_user:\t %s\n", mqttUser.c_str());
+                    Serial.printf(" mqtt_password:\t <HIDDEN>\n");                    
                     Serial.printf(" Universe:\t %s\n", universe.c_str());
                     Serial.printf(" max mA:\t %s\n", maxmilliamp.c_str());
+                    Serial.printf(" is_master:\t %d\n", isMaster);
                 }
                 else
                 {

@@ -7,14 +7,35 @@
 #include <ESPAsyncE131.h>
 #include <ESPNtpClient.h>
 #include <version.h>
+#include <PubSubClient.h>
+#include "BeatInfo.h"
+#include "effects.h"
+
+//#define TEST
 
 #define MY_NTP_SERVER "de.pool.ntp.org"
 #define MY_TZ "CET-1CEST,M3.5.0/02,M10.5.0/03"
 
+#define DEVICE_NAME "ws2812-clock"
+#define TOPIC_BPM "projektiontv/stream/dj/songinfo/bpm"
+#define TOPIC_NAMES "projektiontv/stream/dj/songinfo/names"
+#define TOPIC_EFFECT "projektiontv/stream/dj/effect"
+
+#define FX_MODE_TIMEOUT_MS (60 * 1000)
+#define MULTICAST_MODE_TIMEOUT_MS 2000
+
+
 extern Configuration config;
 ESPAsyncE131 e131(UNIVERSE_COUNT);
 
-CRGB leds[NUM_LEDS];
+WiFiClient psWiFiClient;
+PubSubClient psClient(psWiFiClient);
+BeatInfo beatInfo;
+
+bool fxMode = false;
+uint64_t lastSetEffectMs = 0;
+
+CRGBArray<NUM_LEDS> leds;
 
 CRGB colorDigits = COLOR_DIGITS;
 CRGB colorColon = COLOR_COLON;
@@ -33,6 +54,86 @@ void secondsRingInit();
 void clearScreen();
 void printVersionInfo();
 void printConfigStatus();
+void mqttCallback(char* topic, byte* payload, unsigned int length);
+void mqttReconnect();
+
+
+void mqttCallback(char* topic, byte* payload, unsigned int length)
+{
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  for (int i=0;i<length;i++)
+  {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println();
+
+  String strTopic = topic;
+
+  if(strTopic.equalsIgnoreCase(TOPIC_EFFECT))
+  {
+    DynamicJsonDocument doc(512);
+    deserializeJson(doc, payload, length);
+
+    uint64_t timestamp_us = doc["timestamp_us"];
+    uint8_t effectNumber = doc["number"];
+
+    lastSetEffectMs = timestamp_us/1000;
+
+    if(NTP.millis() < (lastSetEffectMs+FX_MODE_TIMEOUT_MS))
+      fxMode = true;
+
+    effectsRunner.setEffect(effectNumber);
+  }
+
+  if(strTopic.equalsIgnoreCase(TOPIC_BPM))
+  {
+    DynamicJsonDocument doc(512);
+    deserializeJson(doc, payload, length);
+
+    double bpm = doc["bpm"];
+    beatInfo.setBPM(bpm);
+  }
+}
+
+void mqttReconnect()
+{
+  if(strlen(config.getMQTTHost()) < 1)
+    return;
+  
+  static uint8_t connectCount = 0;
+
+  if(!psClient.connected() && (connectCount < MAX_MQTT_CONNECT_TRYS))
+  {
+    Serial.print("Attempting MQTT connection...");
+  
+    connectCount++;
+  
+    String clientId = DEVICE_NAME;
+    clientId += "-";
+    clientId += String(random(0xffffffff), HEX);
+
+    if (psClient.connect(clientId.c_str(), config.getMQTTUser(), config.getMQTTPassword()))
+    {
+      connectCount = 0;
+      Serial.println("connected");
+      psClient.subscribe(TOPIC_BPM);
+      psClient.subscribe(TOPIC_NAMES);
+      psClient.subscribe(TOPIC_EFFECT);
+      
+    }
+    else
+    {
+      Serial.print("failed, rc=");
+      Serial.print(psClient.state());
+      Serial.println(" try again in 1 second");
+      delay(1000);
+    }
+  }
+}
+
+
 
 void clearScreen()
 {
@@ -240,9 +341,56 @@ void printClock(bool showSecondsFlag, bool drawColonFlag)
   showColon(drawColonFlag);
 }
 
+
+void test_led_panel()
+{
+  FastLED.addLeds<CHIPSET, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS).setCorrection(TypicalLEDStrip);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, LED_MAX_MILLIAMP);
+  FastLED.setBrightness(CLOCK_BRIGHTNESS);
+  FastLED.clear();
+
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = CRGB(255, 255, 255);
+    FastLED.show();
+    delay(1);
+  }
+  delay(2000);
+
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = CRGB(255, 0, 0);
+    FastLED.show();
+    delay(1);
+  }
+  delay(2000);
+
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = CRGB(0, 255, 0);
+    FastLED.show();
+    delay(1);
+  }
+  delay(2000);
+
+  for (int i = 0; i < NUM_LEDS; i++)
+  {
+    leds[i] = CRGB(0, 0, 255);
+    FastLED.show();
+    delay(1);
+  }
+  delay(2000);
+
+  while(1);
+}
+
+
 void setup()
 {
-  pinMode(0, INPUT_PULLUP); // low for config-mode; ESP32 = D0; ESP8266 = D3
+#ifdef TEST
+  test_led_panel();
+#endif
+  pinMode(0, INPUT_PULLUP);
   Serial.begin(115200);
   Serial.println();
 
@@ -257,7 +405,7 @@ void setup()
   if(config_flag)
     printConfigStatus();
 
-  config.setupWifiPortal("ws2812-clock", config_flag);
+  config.setupWifiPortal(DEVICE_NAME, config_flag);
 
   clearScreen();
 
@@ -265,6 +413,11 @@ void setup()
 
   NTP.setTimeZone(MY_TZ);
   NTP.begin(MY_NTP_SERVER);
+
+  psClient.setServer(config.getMQTTHost(), 1883);
+  psClient.setCallback(mqttCallback);
+  psClient.setKeepAlive(120);
+  psClient.setSocketTimeout(120);
 
   if (e131.begin(E131_MULTICAST, config.getUniverse(), UNIVERSE_COUNT))   // Listen via Multicast
       Serial.println(F("Listening for data..."));
@@ -311,6 +464,27 @@ bool e131RX()
   return false;
 }
 
+uint32_t getcolorAverage()
+{
+  uint32_t colorAverage = 0;
+
+  for(uint8_t i=0;i<SEGMENTOFFSET;i++)
+  {
+    CRGB color = leds[i];
+    CHSV hsvColor = rgb2hsv_approximate(color);
+    if(hsvColor.v > 16)
+    {
+      colorAverage += hsvColor.hue;
+    }    
+  }
+
+  colorAverage /= SEGMENTOFFSET;
+
+  return colorAverage;
+}
+
+
+
 bool oncePerHalfSecond(bool *lowerHalf)
 {
   static bool oldFlag = false;
@@ -331,26 +505,49 @@ void draw()
   static uint32_t lastMulticastRxMs = ms;
   static uint32_t lastDrawMs = ms;
   static bool showSecondsFlag = false;
-  static bool firstTimeout = false;
+  static bool firstE131Timeout = false;
+  static bool firstFxTimeout = false;
+  static bool e131ActiveFlag = false;
+  static bool fxActiveFlag = false;
 
-  if(ms > (lastMulticastRxMs + 2000))
+  if(NTP.millis() > (lastSetEffectMs+FX_MODE_TIMEOUT_MS))
   {
-    if(firstTimeout)
+    fxMode = false;
+    if(firstFxTimeout)
     {
       FastLED.setBrightness(CLOCK_BRIGHTNESS);
       secondsRingInit();
     }
+    firstFxTimeout=false;
+  }
+
+  if(ms > (lastMulticastRxMs + MULTICAST_MODE_TIMEOUT_MS))
+  {
+    e131ActiveFlag = false;
+
+    if(firstE131Timeout)
+    {
+      FastLED.setBrightness(CLOCK_BRIGHTNESS);
+      secondsRingInit();
+    }
+
     colorDigits = COLOR_DIGITS;
+
     colorColon = COLOR_COLON;
     showSecondsFlag = true;
-    firstTimeout=false;
+    firstE131Timeout=false;
   }
 
   if(e131RX())
   {
+    e131ActiveFlag = true;
+  }
+
+  if(e131ActiveFlag)
+  {
     lastMulticastRxMs = ms;
     showSecondsFlag = false;
-    firstTimeout=true;
+    firstE131Timeout=true;
     FastLED.setBrightness(E131_BRIGHTNESS);
     printClock(showSecondsFlag, (NTP.millis() % 1000) < 500);
     lastDrawMs = ms;
@@ -358,12 +555,29 @@ void draw()
   }
   else
   {
-    bool drawColon = false;
-    if((ms > lastDrawMs+10) && oncePerHalfSecond(&drawColon))
+    if(fxMode)
     {
-      printClock(showSecondsFlag, drawColon);
-      lastDrawMs = ms;
+      firstFxTimeout = true;
+      FastLED.setBrightness(E131_BRIGHTNESS);
+      beatInfo.loop();
+      effectsRunner.run();
+      showSecondsFlag = false;
+
+      colorDigits = CHSV(getcolorAverage(), 255, 128);
+      colorColon = CHSV(getcolorAverage()+128, 255, 128);
+
+      printClock(showSecondsFlag, (NTP.millis() % 1000) < 500);
       FastLED.show();
+    }
+    else
+    {
+      bool drawColon = false;
+      if((ms > lastDrawMs+10) && oncePerHalfSecond(&drawColon))
+      {
+        printClock(showSecondsFlag, drawColon);
+        lastDrawMs = ms;
+        FastLED.show();
+      }      
     }
   }
 }
@@ -373,5 +587,9 @@ void loop()
 {
   config.connectionGuard();
   ArduinoOTA.handle();
+  if(!psClient.connected())
+    mqttReconnect();
+  
+  psClient.loop();
   draw();
 }
