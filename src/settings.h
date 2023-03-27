@@ -7,6 +7,8 @@
 #define COLOR_ORDER GRB
 #define CHIPSET WS2812B
 
+#define MAX_MQTT_CONNECT_TRYS 3
+
 #define E131_ENABLED
 #define UNIVERSE 1
 
