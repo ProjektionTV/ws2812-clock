@@ -110,10 +110,13 @@ void mqttReconnect()
   
     connectCount++;
   
-    String clientId = DEVICE_NAME;
-    clientId += "-";
-    clientId += String(random(0xffffffff), HEX);
-
+    String clientId = "cl-";
+    clientId += String(random(0xffff), HEX);
+    clientId += String(random(0xffff), HEX);
+    clientId += String(random(0xffff), HEX);
+    clientId += String(random(0xffff), HEX);
+    clientId += String(random(0xffff), HEX);
+    
     if (psClient.connect(clientId.c_str(), config.getMQTTUser(), config.getMQTTPassword()))
     {
       connectCount = 0;
@@ -121,7 +124,6 @@ void mqttReconnect()
       psClient.subscribe(TOPIC_BPM);
       psClient.subscribe(TOPIC_NAMES);
       psClient.subscribe(TOPIC_EFFECT);
-      
     }
     else
     {
@@ -541,11 +543,11 @@ void draw()
   if(e131RX())
   {
     e131ActiveFlag = true;
+    lastMulticastRxMs = ms;
   }
 
   if(e131ActiveFlag)
   {
-    lastMulticastRxMs = ms;
     showSecondsFlag = false;
     firstE131Timeout=true;
     FastLED.setBrightness(E131_BRIGHTNESS);

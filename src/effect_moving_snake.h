@@ -35,7 +35,7 @@ public:
 
         for (int i = 0; i < length; i++)
         {
-            int p = min(numLeds-1, max(0, ledPos + i));
+            int p = (ledPos + i) % numLeds;
             leds[p] = color;
             leds[p].fadeToBlackBy((length - i) * (255. / length));
         }
